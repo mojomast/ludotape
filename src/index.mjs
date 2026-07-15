@@ -2,6 +2,41 @@
 const enc = new TextEncoder();
 const DANGEROUS = new Set(['__proto__', 'prototype', 'constructor']);
 const DEFAULT_LIMITS = Object.freeze({maxDepth: 100, maxNodes: 100000, maxBytes: 8 * 1024 * 1024});
+const K = new Uint32Array(64);
+for (let i = 0, candidate = 2; i < K.length; candidate++) {
+  let prime = true;
+  for (let divisor = 2; divisor * divisor <= candidate; divisor++) {
+    if (candidate % divisor === 0) { prime = false; break; }
+  }
+  if (prime) K[i++] = Math.floor((Math.cbrt(candidate) % 1) * 2 ** 32);
+}
+const PROJECT_WARNED = new WeakSet();
+
+class RingQueue {
+  #items = new Array(16);
+  #head = 0;
+  #length = 0;
+  get length() { return this.#length; }
+  push(value) {
+    if (this.#length === this.#items.length) {
+      const grown = new Array(this.#items.length * 2);
+      for (let i = 0; i < this.#length; i++) grown[i] = this.#items[(this.#head + i) % this.#items.length];
+      this.#items = grown;
+      this.#head = 0;
+    }
+    this.#items[(this.#head + this.#length) % this.#items.length] = value;
+    this.#length++;
+  }
+  shift() {
+    if (this.#length === 0) return undefined;
+    const value = this.#items[this.#head];
+    this.#items[this.#head] = undefined;
+    this.#head = (this.#head + 1) % this.#items.length;
+    this.#length--;
+    return value;
+  }
+}
+
 export class LudotapeError extends Error {
   constructor(code, message, details) { super(message); this.name = 'LudotapeError'; this.code = code; this.details = details; }
 }
@@ -69,9 +104,8 @@ function sha256Text(text) {
   const n = ((l + 9 + 63) >> 6) << 6, b = new Uint8Array(n); b.set(bytes); b[l] = 128;
   const dv = new DataView(b.buffer); dv.setUint32(n - 4, bit >>> 0); dv.setUint32(n - 8, Math.floor(bit / 2 ** 32));
   const h = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
-  const k = new Uint32Array(64); for (let i=0,p=2;i<64;p++){let prime=true;for(let d=2;d*d<=p;d++)if(p%d===0){prime=false;break}if(prime)k[i++]=Math.floor((Math.cbrt(p)%1)*2**32)}
   const w=new Uint32Array(64),rotr=(x,n)=>(x>>>n)|(x<<(32-n));
-  for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=(w[i-16]+(rotr(a,7)^rotr(a,18)^(a>>>3))+w[i-7]+(rotr(c,17)^rotr(c,19)^(c>>>10)))>>>0}let [a,c,d,e,f,g,q,z]=h;for(let i=0;i<64;i++){const t1=(z+(rotr(f,6)^rotr(f,11)^rotr(f,25))+((f&g)^(~f&q))+k[i]+w[i])>>>0,t2=((rotr(a,2)^rotr(a,13)^rotr(a,22))+((a&c)^(a&d)^(c&d)))>>>0;z=q;q=g;g=f;f=(e+t1)>>>0;e=d;d=c;c=a;a=(t1+t2)>>>0}h[0]=(h[0]+a)>>>0;h[1]=(h[1]+c)>>>0;h[2]=(h[2]+d)>>>0;h[3]=(h[3]+e)>>>0;h[4]=(h[4]+f)>>>0;h[5]=(h[5]+g)>>>0;h[6]=(h[6]+q)>>>0;h[7]=(h[7]+z)>>>0}
+  for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=(w[i-16]+(rotr(a,7)^rotr(a,18)^(a>>>3))+w[i-7]+(rotr(c,17)^rotr(c,19)^(c>>>10)))>>>0}let [a,c,d,e,f,g,q,z]=h;for(let i=0;i<64;i++){const t1=(z+(rotr(f,6)^rotr(f,11)^rotr(f,25))+((f&g)^(~f&q))+K[i]+w[i])>>>0,t2=((rotr(a,2)^rotr(a,13)^rotr(a,22))+((a&c)^(a&d)^(c&d)))>>>0;z=q;q=g;g=f;f=(e+t1)>>>0;e=d;d=c;c=a;a=(t1+t2)>>>0}h[0]=(h[0]+a)>>>0;h[1]=(h[1]+c)>>>0;h[2]=(h[2]+d)>>>0;h[3]=(h[3]+e)>>>0;h[4]=(h[4]+f)>>>0;h[5]=(h[5]+g)>>>0;h[6]=(h[6]+q)>>>0;h[7]=(h[7]+z)>>>0}
   return [...h].map(x=>x.toString(16).padStart(8,'0')).join('');
 }
 export {sha256Text};
@@ -99,6 +133,7 @@ export function defineGame(spec) {
   if (!spec || typeof spec !== 'object') bad('E_GAME', 'game specification required');
   for (const key of ['id','version']) if (typeof spec[key] !== 'string' || !spec[key]) bad('E_GAME', `${key} must be a non-empty string`);
   for (const key of ['initialState','actions','transition']) if (typeof spec[key] !== 'function') bad('E_GAME', `${key} callback required`);
+  if (spec.isGoal !== undefined && typeof spec.isGoal !== 'function') bad('E_GAME', 'isGoal must be a function if provided');
   const metadata = clone(spec.metadata ?? {}); deepFreeze(metadata);
   return Object.freeze({...spec, metadata});
 }
@@ -152,7 +187,12 @@ export function dispatch(run, action) {
   return deepFreeze(clone(entry));
 }
 export function project(run, adapter, options={}) {
-  const d=data(run), raw=d.cartridge.game.project?d.cartridge.game.project(clone(d.state),observerContext(d)):clone(d.state);
+  const d=data(run);
+  if (!d.cartridge.game.project && !PROJECT_WARNED.has(d.cartridge)) {
+    PROJECT_WARNED.add(d.cartridge);
+    console.warn(`[ludotape] No project() callback defined for cartridge ${d.cartridge.identity.slice(0,12)}; raw state will be projected.`);
+  }
+  const raw=d.cartridge.game.project?d.cartridge.game.project(clone(d.state),observerContext(d)):clone(d.state);
   const view=deepFreeze(clone(raw,{maxDepth:options.maxDepth??64,maxNodes:options.maxNodes??50000,maxBytes:options.maxBytes??2*1024*1024}));
   if (!adapter) return view;
   const info=deepFreeze({cartridge:{identity:d.cartridge.identity,rulesDigest:d.cartridge.rulesDigest,rulesVersion:d.cartridge.rulesVersion},seed:clone(d.seed),turn:d.turn,stateDigest:digest(d.state)});
@@ -179,6 +219,42 @@ function validateReplayShape(replay, options={}) {
   try{seedState(clean.seed)}catch{replayError('E_REPLAY_SEED','invalid replay seed')}
   return clean;
 }
+/** Create a cursor that incrementally dispatches and verifies a replay. */
+export function createReplayCursor(cartridge, replay, options={}) {
+  const clean=validateReplayShape(replay,options);
+  if(clean.cartridge!==cartridge.identity)bad('E_IDENTITY','cartridge identity mismatch');
+  const current=createRun(cartridge,{seed:clean.seed});
+  if(current.initialDigest!==clean.initial)bad('E_INITIAL','initial state mismatch');
+  let turn=0;
+  function step() {
+    if(turn>=clean.actions.length)bad('E_CURSOR_DONE','replay cursor is done');
+    const entry=dispatch(current,clean.actions[turn]);
+    if(clean.checkpoints[turn]!==entry.after)bad('E_CHECKPOINT',`checkpoint ${turn} mismatch`);
+    turn++;
+    return entry;
+  }
+  function stepAll() {
+    const entries=[];
+    while(turn<clean.actions.length)entries.push(step());
+    return entries;
+  }
+  function verify() {
+    try {
+      stepAll();
+      if(digest(current.state)!==clean.final)bad('E_FINAL','final state mismatch');
+      return {ok:true,turns:current.turn,final:clean.final,run:current};
+    } catch(error) {
+      return {ok:false,error:{code:error.code??'E_UNKNOWN',message:error.message}};
+    }
+  }
+  const cursor={step,stepAll,verify};
+  Object.defineProperties(cursor,{
+    turn:{enumerable:true,get:()=>turn},
+    run:{enumerable:true,get:()=>current},
+    done:{enumerable:true,get:()=>turn>=clean.actions.length}
+  });
+  return Object.freeze(cursor);
+}
 export function verifyReplay(cartridge,replay,options={}) {
   try {
     const clean=validateReplayShape(replay,options);
@@ -198,14 +274,14 @@ export function solve(cartridge, options={}) {
   const maxActions=bounded(options.maxActions,1000,SOLVER_CEIL.actions,'maxActions','E_SOLVE_LIMIT'), maxGenerated=bounded(options.maxGenerated,100000,SOLVER_CEIL.generated,'maxGenerated','E_SOLVE_LIMIT');
   const maxQueue=bounded(options.maxQueue,100000,SOLVER_CEIL.queue,'maxQueue','E_SOLVE_LIMIT'), maxStateBytes=bounded(options.maxStateBytes,1024*1024,SOLVER_CEIL.stateBytes,'maxStateBytes','E_SOLVE_LIMIT');
   const root=createRun(cartridge,{seed}), goal=options.isGoal??cartridge.game.isGoal;if(typeof goal!=='function')bad('E_SOLVE','isGoal callback required');
-  const queue=[{run:root,path:[]}],seen=new Set([executionKey(data(root),maxStateBytes)]);let head=0,visited=0,generated=0,boundedHit=false;
-  while(head<queue.length){
-    if(visited>=maxNodes){boundedHit=true;break} const node=queue[head++];visited++; const nd=data(node.run);
+  const queue=new RingQueue(),seen=new Set([executionKey(data(root),maxStateBytes)]);queue.push({run:root,path:[]});let visited=0,generated=0,boundedHit=false;
+  while(queue.length){
+    if(visited>=maxNodes){boundedHit=true;break} const node=queue.shift();visited++; const nd=data(node.run);
     if(goal(clone(nd.state),observerContext(nd)))return {status:'solved',actions:clone(node.path),state:clone(nd.state),visited,generated,depth:node.path.length};
     if(node.path.length>=maxDepth){boundedHit=true;continue}
     const actions=availability(node.run);if(actions.length>maxActions){boundedHit=true;continue}
     for(const action of actions){
-      if(generated>=maxGenerated||queue.length-head>=maxQueue){boundedHit=true;break}
+      if(generated>=maxGenerated||queue.length>=maxQueue){boundedHit=true;break}
       const child=fork(node.run);dispatch(child,action);generated++;
       const key=executionKey(data(child),maxStateBytes);if(!seen.has(key)){seen.add(key);queue.push({run:child,path:[...node.path,clone(action)]})}
     }
