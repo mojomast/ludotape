@@ -108,6 +108,7 @@ export function terminalAdapter(writeFn, {depth = 4, indent = 2} = {}) {
           return;
         }
         const entries = Object.entries(value);
+        if (!Array.isArray(value)) entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
         if (entries.length === 0) {
           lines.push(`${padding}${prefix}${Array.isArray(value) ? '[]' : '{}'}`);
           return;
