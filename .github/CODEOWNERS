@@ -1,0 +1,8 @@
+# Default owner for everything in the repository.
+* @mojomast
+
+# Illustrative granularity: core runtime and devkit surfaces called out explicitly.
+# (These currently resolve to the same owner as the default; split out per-directory
+# owners here as the maintainer team grows.)
+/src/cores/ @mojomast
+/devkit/ @mojomast

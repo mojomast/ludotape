@@ -1,0 +1,10 @@
+{
+  "format": "ludotape/core-manifest@1",
+  "id": "ludotape/custom-core-template",
+  "version": "0.2.0",
+  "name": "Custom Core Template",
+  "description": "Reference skeleton for authoring custom Ludotape cores.",
+  "entry": "./core.mjs",
+  "capabilities": {"replay": true, "rewind": true, "solve": true, "scenarios": false},
+  "cartridgeFormats": ["ludotape/custom-cartridge@1"]
+}

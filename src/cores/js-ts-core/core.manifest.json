@@ -1,0 +1,10 @@
+{
+  "format": "ludotape/core-manifest@1",
+  "id": "ludotape/js-ts-core",
+  "version": "0.2.0",
+  "name": "JavaScript/TypeScript Core",
+  "description": "Reference ICore implementation for ludotape/cartridge@1, delegating to the core JS/TS runtime.",
+  "entry": "./core.mjs",
+  "capabilities": {"replay": true, "rewind": true, "solve": true, "scenarios": true},
+  "cartridgeFormats": ["ludotape/cartridge@1"]
+}

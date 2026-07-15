@@ -49,5 +49,37 @@ try{
  else if(command==='solve'){if(args.length<1||args.length>4)throw new LudotapeError('E_CLI_ARGUMENT','solve expects cartridge and optional seed/depth/nodes');const c=await loadCartridge(args[0]),result=solve(c,{seed:integer(args[1],0,-2147483648,2147483647,'seed'),maxDepth:integer(args[2],20,0,1000,'depth'),maxNodes:integer(args[3],10000,0,1000000,'nodes')});console.log(JSON.stringify(result,null,2));if(result.status!=='solved')process.exitCode=2}
  else if(command==='benchmark'){if(args.length)throw new LudotapeError('E_CLI_ARGUMENT','benchmark takes no arguments');await import('../bench/benchmark.mjs')}
  else if(command==='serve'){if(args.length>2)throw new LudotapeError('E_CLI_ARGUMENT','serve expects optional port and host');const port=integer(args[0],8080,0,65535,'port'),host=args[1]??'127.0.0.1',server=await createStaticServer({port,host}),address=server.address();console.log(`Ludotape Studio (local development only): http://${host}:${address.port}`)}
- else fail('Usage: ludotape <validate cartridge.mjs [seed] | check cartridge.mjs [seed [depth [paths]]] | test cartridge.mjs scenarios.mjs | verify cartridge.mjs replay.json | solve cartridge.mjs [seed depth nodes] | benchmark | serve [port [host]]>')
+ else if(command==='core'){
+   const [sub,...rest]=args;
+   const {loadCoreFromManifest,validateCoreShape,discoverCores,defaultRegistry}=await import('../src/core-loader.mjs');
+   if(sub==='list'){
+     if(rest.length)throw new LudotapeError('E_CLI_ARGUMENT','core list takes no arguments');
+     const packageRoot=dirname(dirname(fileURLToPath(import.meta.url)));
+     const discovered=await discoverCores([join(packageRoot,'src','cores'),join(packageRoot,'examples','cores')]);
+     console.log(JSON.stringify({registered:defaultRegistry.list(),discovered:{cores:discovered.cores.map(c=>c.metadata),diagnostics:discovered.diagnostics}},null,2));
+   } else if(sub==='validate'){
+     if(rest.length!==1)throw new LudotapeError('E_CLI_ARGUMENT','core validate expects a single core directory');
+     const manifestPath=join(required(rest[0],'core directory'),'core.manifest.json');
+     try{
+       const core=await loadCoreFromManifest(manifestPath);
+       const shape=validateCoreShape(core);
+       console.log(JSON.stringify({ok:shape.ok,metadata:core.metadata,diagnostics:shape.diagnostics},null,2));
+       if(!shape.ok)process.exitCode=1;
+     }catch(error){
+       console.log(JSON.stringify({ok:false,error:{code:error.code??'E_UNKNOWN',message:error.message}},null,2));
+       process.exitCode=1;
+     }
+   } else if(sub==='conformance'){
+     if(rest.length<2||rest.length>3)throw new LudotapeError('E_CLI_ARGUMENT','core conformance expects <coreDir> <cartridge.mjs> [seed]; a cartridge module path is required');
+     const {runCoreConformance}=await import('../test/core-conformance.mjs');
+     const manifestPath=join(required(rest[0],'core directory'),'core.manifest.json');
+     const core=await loadCoreFromManifest(manifestPath);
+     const cartridgeSource=await loadCartridge(rest[1]);
+     const seed=integer(rest[2],0,-2147483648,2147483647,'seed');
+     const report=await runCoreConformance(core,{cartridgeSource,seed});
+     console.log(JSON.stringify(report,null,2));
+     if(!report.ok)process.exitCode=1;
+   } else fail('Usage: ludotape core <list | validate <coreDir> | conformance <coreDir> <cartridge.mjs> [seed]>')
+ }
+ else fail('Usage: ludotape <validate cartridge.mjs [seed] | check cartridge.mjs [seed [depth [paths]]] | test cartridge.mjs scenarios.mjs | verify cartridge.mjs replay.json | solve cartridge.mjs [seed depth nodes] | benchmark | serve [port [host]] | core <list | validate coreDir | conformance coreDir cartridge.mjs [seed]>>')
 }catch(e){fail(`${e.code??e.name}: ${e.message}`)}

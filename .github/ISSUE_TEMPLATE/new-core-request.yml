@@ -1,0 +1,58 @@
+name: New core request
+description: Propose a new pluggable core (runtime that interprets a cartridge format)
+body:
+  - type: markdown
+    attributes:
+      value: See CORE_SPEC.md for the ICore contract cores must satisfy.
+  - type: input
+    id: core-id
+    attributes:
+      label: Proposed core id
+      description: 'Namespaced id, e.g. "example/my-core".'
+      placeholder: example/my-core
+    validations:
+      required: true
+  - type: input
+    id: cartridge-formats
+    attributes:
+      label: Cartridge format(s)
+      description: One or more cartridge format identifiers this core will interpret.
+      placeholder: 'e.g. "example/my-cartridge@1"'
+    validations:
+      required: true
+  - type: checkboxes
+    id: capabilities
+    attributes:
+      label: Capabilities
+      description: Which ICore capabilities will this core declare and implement?
+      options:
+        - label: replay (createReplay / verifyReplay)
+        - label: rewind (rewindRun)
+        - label: solve (isGoal / solve)
+        - label: scenarios
+    validations:
+      required: false
+  - type: textarea
+    id: determinism-plan
+    attributes:
+      label: Determinism plan
+      description: >-
+        How will randomness and state stay canonical and seeded? Explain how the core
+        avoids Math.random(), Date.now(), locale-dependent behavior, and other
+        non-deterministic I/O, and how RNG is threaded through context.rng only.
+    validations:
+      required: true
+  - type: textarea
+    id: maintenance-commitment
+    attributes:
+      label: Maintenance commitment
+      description: Who will maintain this core, and what is the expected support window?
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Links
+      description: Links to a prototype, related discussion, or the target cartridge format spec.
+    validations:
+      required: false

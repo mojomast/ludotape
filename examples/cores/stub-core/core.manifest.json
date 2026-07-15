@@ -1,0 +1,10 @@
+{
+  "format": "ludotape/core-manifest@1",
+  "id": "example/stub-core",
+  "version": "0.2.0",
+  "name": "Stub Core",
+  "description": "Minimal example custom core: a fixed-length tape counter.",
+  "entry": "./core.mjs",
+  "capabilities": {"replay": true, "rewind": true, "solve": true, "scenarios": false},
+  "cartridgeFormats": ["example/stub-cartridge@1"]
+}

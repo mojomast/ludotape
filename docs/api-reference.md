@@ -124,9 +124,10 @@ ludotape verify cartridge.mjs replay.json
 ludotape solve cartridge.mjs [seed [depth [nodes]]]
 ludotape benchmark
 ludotape serve [port [host]]
+ludotape core <list | validate <coreDir> | conformance <coreDir> <cartridge.mjs> [seed]>
 ```
 
-Cartridge modules export `default` or named `cartridge`; scenario modules export `default` or named `scenarios`. Numeric CLI arguments use strict decimal integer syntax. Seeds are signed 32-bit integers. `check` depth is `0..100` and paths is effectively `1..100000` (zero reaches the authoring API and is rejected); defaults are seed `0`, depth `2`, paths `100`, with `maxActionsPerState` fixed at `100`. `solve` defaults are seed `0`, depth `20`, nodes `10000`, with ceilings `1000` and `1000000`. `serve` defaults to port `8080`, host `127.0.0.1`.
+Cartridge modules export `default` or named `cartridge`; scenario modules export `default` or named `scenarios`. Numeric CLI arguments use strict decimal integer syntax. Seeds are signed 32-bit integers. `check` depth is `0..100` and paths is effectively `1..100000` (zero reaches the authoring API and is rejected); defaults are seed `0`, depth `2`, paths `100`, with `maxActionsPerState` fixed at `100`. `solve` defaults are seed `0`, depth `20`, nodes `10000`, with ceilings `1000` and `1000000`. `serve` defaults to port `8080`, host `127.0.0.1`. The `core` group (`list`/`validate`/`conformance`, plus the devkit CLIs) is documented in full in the [CLI reference](cli-reference.md#core-command-group).
 
 `validate` imports a cartridge, creates initial state, and evaluates initial legal actions; it does **not** execute every transition or projection. `check` performs bounded authoring exploration. `test` runs exact scenarios. `verify` limits replay files to 2 MiB. Application code plays through `createRun`, `availability`, and `dispatch`; there is no implicit game loop or arbitrary Studio module loader.
 

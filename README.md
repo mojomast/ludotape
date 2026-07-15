@@ -1,6 +1,6 @@
 # Ludotape
 
-**Games you can rewind.** Ludotape 0.1.0 is a zero-dependency JavaScript framework for deterministic, replayable, renderer-neutral browser games. It also runs headlessly on Node.js 20+.
+**Games you can rewind.** Ludotape 0.2.0 is a zero-dependency JavaScript framework for deterministic, replayable, renderer-neutral browser games. It also runs headlessly on Node.js 20+.
 
 ## Create your first game
 
@@ -95,7 +95,7 @@ console.log(project(run));
 
 ## Included
 
-Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG with dice and shuffle helpers, isolated runs and journals, action scripts and rewind reconstruction, strict bounded replay verification with step cursors, exact authoring scenarios, bounded cartridge checks and BFS solving, memory/Web Storage/IndexedDB repositories, undoable draft editing, browser and terminal adapters, Studio, CLI, and three tested example games.
+Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG with dice and shuffle helpers, isolated runs and journals, action scripts and rewind reconstruction, strict bounded replay verification with step cursors, exact authoring scenarios, bounded cartridge checks and BFS solving, memory/Web Storage/IndexedDB repositories, undoable draft editing, browser and terminal adapters, Studio, CLI, and three tested example games. Since 0.2, a pluggable core layer (`ICore`) and devkit let you swap in a custom runtime for other cartridge formats alongside the built-in JS/TS core — see [DEVKIT.md](DEVKIT.md).
 
 ## Trust and scope
 
@@ -103,4 +103,4 @@ Game callbacks and imported cartridges are trusted JavaScript and are **not sand
 
 Ludotape is not a production web server, network lockstep protocol, anti-cheat system, physics engine, or asset pipeline.
 
-Start with the [documentation index](docs/README.md), [game author guide](docs/game-author-guide.md), [specification](SPEC.md), and [architecture](ARCHITECTURE.md). See [SECURITY.md](SECURITY.md) for private reporting and [SUPPORT.md](SUPPORT.md) for help. MIT licensed.
+Start with the [documentation index](docs/README.md), [game author guide](docs/game-author-guide.md), [specification](SPEC.md), [architecture](ARCHITECTURE.md), [devkit quick reference](DEVKIT.md), and [core specification](CORE_SPEC.md). See [SECURITY.md](SECURITY.md) for private reporting and [SUPPORT.md](SUPPORT.md) for help. MIT licensed.

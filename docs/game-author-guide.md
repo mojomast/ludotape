@@ -141,6 +141,52 @@ The checker explores available actions breadth-first, twin-executes each reached
 
 Warnings do not make a check fail; error diagnostics do. A clean bounded check is evidence about only the explored paths, never a proof that a cartridge is deterministic or correct. The [cartridge authoring toolkit](cartridge-authoring-toolkit.md) documents exact declaration and report shapes.
 
+## Multiple cores
+
+Ludotape 0.2 adds a pluggable *core* layer. A core is a runtime that interprets a cartridge format and exposes the standard run lifecycle behind one interface. Everything above this section describes the built-in **JS/TS core**, which interprets the `ludotape/cartridge@1` format produced by `defineGame`/`compileCartridge`.
+
+### When you can ignore cores
+
+If you author games with `defineGame` and import from `ludotape` (or `ludotape/js-ts-core`), you are already using the built-in JS/TS core. Nothing in your workflow changes: the default core is selected automatically, and digests, replays, and solver behaviour are identical to the 0.1 framework. Most game authors never touch a core directly.
+
+### When cores matter
+
+Cores become relevant when a game is expressed in a **different cartridge format** — for example a declarative JSON rules document interpreted by a custom core, rather than JavaScript callbacks. A registry resolves a cartridge to the core that can run it by matching `cartridge.format` against each core's `cartridgeFormats`. To run such a cartridge you register the appropriate core and let `resolve(cartridge)` select it:
+
+```js
+import {defaultRegistry} from 'ludotape/core';
+import cartridge from './my-cartridge.mjs';
+
+const core = defaultRegistry.resolve(cartridge);   // built-in core for ludotape/cartridge@1
+const loaded = await core.loadCartridge(cartridge);
+const run = core.createRun(loaded, {seed: 0});
+core.dispatch(run, core.availability(run)[0]);
+console.log(core.project(run));
+```
+
+### Choosing a core
+
+- For JavaScript-authored games (`defineGame`), keep using the JS/TS core — no registration needed.
+- For a third-party cartridge format, install and register that format's core (see the [SDK publishing guide](sdk-publishing-guide.md) for how cores are distributed).
+- To interpret your own format, build a core with the [core authoring guide](core-authoring-guide.md).
+
+### Importing from `ludotape/js-ts-core`
+
+The `ludotape/js-ts-core` subpath re-exports the same typed authoring helpers (`defineGame`, `compileCartridge`, `createRun`, `dispatch`, `project`, `solve`, replay, and RNG) as `ludotape`, plus the core factory. It is a convenient one-stop import for TypeScript game authors:
+
+```js
+import {defineCartridge, createRun, availability, dispatch, project} from 'ludotape/js-ts-core';
+```
+
+The full surface is documented in the [JS/TS core reference](js-ts-core-reference.md).
+
+### Pointers
+
+- [Devkit and cores overview](devkit-overview.md) — the abstraction and package subpath map.
+- [JS/TS core reference](js-ts-core-reference.md) — the built-in core's complete API.
+- [Custom core reference](custom-core-reference.md) — loader, registry, and manifest.
+- [Core specification](../CORE_SPEC.md) — normative rules.
+
 ## Platform references
 
 - [MDN: JavaScript modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)

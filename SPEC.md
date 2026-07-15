@@ -18,6 +18,10 @@ Run state and journal getters return copies. Replays and projections have no ali
 
 Replay v1 has exactly `format`, `cartridge`, `seed`, `initial`, `actions`, `checkpoints`, and `final`. Arrays, every digest/checkpoint, seed, depth, action count, nodes, and bytes are strictly validated under hard limits. Verification reconstructs execution and checks every checkpoint. Solving is indexed-queue FIFO BFS; its deduplication key includes visible state, RNG state, and turn. Depth, visited nodes, fanout, generated children, queue, and state bytes have finite integer limits and hard ceilings. Exhaustion is `unsolved`; any reached bound is `bounded`.
 
+## Cores
+
+Execution described above is exposed through pluggable cores: a core is a frozen object implementing the `ICore` interface, interpreting one or more cartridge formats, and providing the standard `loadCartridge`/`createRun`/`availability`/`dispatch`/`project` lifecycle plus optional replay/rewind/solve capabilities. [CORE_SPEC.md](CORE_SPEC.md) is the normative specification for `ICore`, core metadata and manifests, the loader/registry, and conformance; this document's canonical-value and determinism requirements apply unchanged to every core. A core MUST NOT accept non-canonical state, actions, or projections, and MUST consume randomness only through the same seeded RNG discipline as the built-in runtime. The built-in `ludotape/js-ts-core` is the reference implementation of this section, delegating directly to the execution rules above.
+
 ## Non-goals
 
 Callback sandboxing, multiplayer consensus, signatures, anti-cheat, continuous-time simulation, DOM ownership, and universal cross-engine floating-point equivalence are not specified.
