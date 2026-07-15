@@ -1,1 +1,52 @@
-import {performance} from 'node:perf_hooks';import {writeFile,mkdir} from 'node:fs/promises';import cartridge from '../examples/warehouse-circuit.mjs';import {createRun,availability,dispatch,canonical,digest,solve} from '../src/index.mjs';const iterations=5000;let run=createRun(cartridge),start=performance.now();for(let i=0;i<iterations;i++){const actions=availability(run);if(!actions.length)run=createRun(cartridge);dispatch(run,actions[i%actions.length])}const dispatchMs=performance.now()-start;start=performance.now();for(let i=0;i<iterations;i++)digest({i,text:'ludotape',nested:[1,2,3]});const digestMs=performance.now()-start;start=performance.now();const solved=solve(cartridge,{maxDepth:8,maxNodes:1000});const solveMs=performance.now()-start;const result={format:'ludotape/benchmark@1',runtime:process.version,platform:process.platform,iterations,dispatch:{totalMs:+dispatchMs.toFixed(3),opsPerSecond:+(iterations/dispatchMs*1000).toFixed(1)},digest:{totalMs:+digestMs.toFixed(3),opsPerSecond:+(iterations/digestMs*1000).toFixed(1)},solve:{totalMs:+solveMs.toFixed(3),visited:solved.visited,status:solved.status},note:'Single process, warm runtime; descriptive, not a cross-runtime guarantee.'};await mkdir(new URL('./',import.meta.url),{recursive:true});await writeFile(new URL('./results.json',import.meta.url),canonical(result)+'\n');console.log(JSON.stringify(result,null,2));
+import {performance} from 'node:perf_hooks';
+import cartridge from '../examples/warehouse-circuit.mjs';
+import {
+  availability,
+  createRun,
+  digest,
+  dispatch,
+  solve
+} from '../src/index.mjs';
+
+const iterations = 5000;
+let run = createRun(cartridge);
+let start = performance.now();
+for (let i = 0; i < iterations; i++) {
+  const actions = availability(run);
+  if (!actions.length) run = createRun(cartridge);
+  dispatch(run, actions[i % actions.length]);
+}
+const dispatchMs = performance.now() - start;
+
+start = performance.now();
+for (let i = 0; i < iterations; i++) {
+  digest({i, text: 'ludotape', nested: [1, 2, 3]});
+}
+const digestMs = performance.now() - start;
+
+start = performance.now();
+const solved = solve(cartridge, {maxDepth: 8, maxNodes: 1000});
+const solveMs = performance.now() - start;
+
+const result = {
+  format: 'ludotape/benchmark@1',
+  runtime: process.version,
+  platform: process.platform,
+  iterations,
+  dispatch: {
+    totalMs: +dispatchMs.toFixed(3),
+    opsPerSecond: +(iterations / dispatchMs * 1000).toFixed(1)
+  },
+  digest: {
+    totalMs: +digestMs.toFixed(3),
+    opsPerSecond: +(iterations / digestMs * 1000).toFixed(1)
+  },
+  solve: {
+    totalMs: +solveMs.toFixed(3),
+    visited: solved.visited,
+    status: solved.status
+  },
+  note: 'Single process, warm runtime; descriptive, not a cross-runtime guarantee.'
+};
+
+console.log(JSON.stringify(result, null, 2));

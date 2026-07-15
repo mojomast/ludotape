@@ -25,7 +25,7 @@
   "files": [
     "src",
     "bin",
-    "bench",
+    "bench/benchmark.mjs",
     "dist",
     "examples",
     "docs",

@@ -14,9 +14,11 @@ import cartridge from '../examples/basic-counter.mjs';
 
 function playToCompletion(seed = 0) {
   const run = createRun(cartridge, {seed});
-  while (availability(run).length > 0) {
+  for (let turn = 0; turn < 3; turn++) {
+    assert.deepEqual(availability(run), [{type: 'increment'}]);
     dispatch(run, {type: 'increment'});
   }
+  assert.deepEqual(availability(run), []);
   return run;
 }
 
