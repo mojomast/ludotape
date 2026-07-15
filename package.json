@@ -11,7 +11,8 @@
     "build": "node scripts/build.mjs",
     "benchmark": "node bench/benchmark.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm test && npm run build && npm run benchmark && npm run smoke"
+    "check": "npm test && npm run build && npm run benchmark && npm run smoke",
+    "prepack": "node scripts/build.mjs"
   },
   "license": "MIT",
   "author": "mojomast",
@@ -19,5 +20,22 @@
   "homepage": "https://github.com/mojomast/ludotape#readme",
   "bugs": {"url":"https://github.com/mojomast/ludotape/issues"},
   "keywords": ["game", "deterministic", "replay", "browser"],
-  "files": ["src", "bin", "studio", "examples", "docs", "README.md", "SPEC.md", "ARCHITECTURE.md", "LICENSE"]
+  "files": [
+    "src",
+    "bin",
+    "dist",
+    "examples",
+    "docs",
+    "README.md",
+    "SPEC.md",
+    "ARCHITECTURE.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "PRIVACY.md",
+    "ROADMAP.md",
+    "CHANGELOG.md",
+    "SUPPORT.md",
+    "LICENSE"
+  ]
 }
