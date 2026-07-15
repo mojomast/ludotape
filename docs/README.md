@@ -1,8 +1,8 @@
 # Ludotape documentation
 
-- [Getting started](getting-started.md) — real source-checkout, build, CLI, and Studio steps.
+- [Getting started](getting-started.md) — create, validate, solve, run, project, and replay a basic game.
 - [API reference](api-reference.md) — package exports, signatures, limits, and callback RNG access.
-- [Game author guide](game-author-guide.md) — rules callbacks and deterministic authoring.
+- [Game author guide](game-author-guide.md) — callback, action, rendering, accessibility, testing, and determinism practices.
 - [Determinism contract](determinism-contract.md) — supported values and sources of nondeterminism.
 - [Replay format](replay-format.md) — exact replay fields and integrity semantics.
 - [Renderer adapters](renderer-adapters.md) — projections and snapshot-only adapter metadata.

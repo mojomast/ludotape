@@ -9,6 +9,8 @@ This project follows Keep a Changelog. Semantic-version stability is not promise
 - Added canonical Web Storage writes, a lazy IndexedDB repository, terminal rendering, responsive canvas redraws, and richer semantic ARIA output.
 - Hardened Studio state, parsing and seed errors, deterministic rewind reconstruction, tabs, and keyboard shortcuts.
 - Added focused editor, storage, and adapter regression suites.
+- Added a readable, runnable Basic Counter cartridge with end-to-end onboarding tests and first-game tutorials.
+- Added optional `project` callback validation and package-artifact verification; packaged CLI benchmarks now include their implementation.
 
 ## [0.1.0]
 
