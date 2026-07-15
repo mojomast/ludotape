@@ -124,9 +124,31 @@ function seedState(seed) {
   if (typeof seed !== 'string' && typeof seed !== 'boolean' && seed !== null) bad('E_SEED', 'seed must be a safe integer, string, boolean, or null');
   return parseInt(digest(seed).slice(0, 8), 16) >>> 0;
 }
+/**
+ * Create a deterministic RNG. `next`, `int`, `pick`, and `die` consume one
+ * value; `shuffle` consumes max(items.length - 1, 0), and `dice` consumes
+ * exactly `count`. These consumption rules are part of the stable sequence.
+ */
 export function createRng(seed = 0, internalState) {
   let s = internalState === undefined ? seedState(seed) : internalState >>> 0;
-  return Object.freeze({next(){s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296},int(max){if(!Number.isSafeInteger(max)||max<=0)bad('E_RNG','max must be a positive integer');return Math.floor(this.next()*max)},pick(items){if(!Array.isArray(items)||!items.length)bad('E_RNG','cannot pick from empty collection');return items[this.int(items.length)]},get state(){return s}});
+  return Object.freeze({
+    next(){s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296},
+    int(max){if(!Number.isSafeInteger(max)||max<=0)bad('E_RNG','max must be a positive integer');return Math.floor(this.next()*max)},
+    pick(items){if(!Array.isArray(items)||!items.length)bad('E_RNG','cannot pick from empty collection');return items[this.int(items.length)]},
+    shuffle(items){
+      if(!Array.isArray(items))bad('E_RNG','shuffle requires an array');
+      const shuffled=items.slice();
+      for(let i=shuffled.length-1;i>0;i--){const j=this.int(i+1);[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
+      return shuffled;
+    },
+    die(sides=6){if(!Number.isSafeInteger(sides)||sides<=0)bad('E_RNG','sides must be a positive safe integer');return this.int(sides)+1},
+    dice(sides,count){
+      if(!Number.isSafeInteger(sides)||sides<=0)bad('E_RNG','sides must be a positive safe integer');
+      if(!Number.isSafeInteger(count)||count<0)bad('E_RNG','count must be a non-negative safe integer');
+      const rolls=new Array(count);for(let i=0;i<count;i++)rolls[i]=this.die(sides);return rolls;
+    },
+    get state(){return s}
+  });
 }
 
 export function defineGame(spec) {
@@ -145,6 +167,11 @@ export function compileCartridge(game, document = {}) {
   const identitySnapshot = {format:'ludotape/cartridge@1', rulesDigest, rulesVersion:game.version, document:doc};
   const identity = digest(identitySnapshot);
   return Object.freeze({format:'ludotape/cartridge@1', identity, rulesDigest, rulesVersion:game.version, ruleset, document:doc, game});
+}
+
+/** Define a game and compile it with its authoring document in one step. */
+export function defineCartridge({document={},...gameSpec}={}) {
+  return compileCartridge(defineGame(gameSpec),document);
 }
 
 const INTERNAL = new WeakMap();
@@ -185,6 +212,61 @@ export function dispatch(run, action) {
   const entry=deepFreeze({index:d.turn,action:clone(action),before,after:digest(next),rngBefore:d.rngState,rngAfter:rng.state});
   d.state=next; d.rngState=rng.state; d.turn++; d.journal.push(entry);
   return deepFreeze(clone(entry));
+}
+
+function safeCause(error) {
+  let code='E_UNKNOWN',message='Unknown error';
+  try { if(typeof error?.code==='string')code=error.code; } catch {}
+  try { if(typeof error?.message==='string')message=error.message;else message=String(error); } catch {}
+  return {code,message};
+}
+function actionScriptError(message,index,turn,action,cause) {
+  let safeAction=null;
+  try { safeAction=clone(action); } catch {}
+  bad('E_ACTION_SCRIPT',message,{index,turn,action:safeAction,cause:safeCause(cause)});
+}
+
+/** Create a fresh seeded run and dispatch a bounded canonical action script. */
+export function runActions(cartridge, actions, {seed=0,maxActions=10000}={}) {
+  let limit;
+  try { limit=bounded(maxActions,10000,100000,'maxActions','E_ACTION_SCRIPT'); }
+  catch(error) { actionScriptError('Invalid action script limit',0,0,null,error); }
+  if(!Array.isArray(actions))actionScriptError('actions must be a dense canonical array',0,0,actions,new LudotapeError('E_CANONICAL_ARRAY','actions must be an array'));
+  if(actions.length>limit)actionScriptError('action script limit exceeded',limit,0,null,new LudotapeError('E_ACTION_SCRIPT_LIMIT','action script limit exceeded'));
+  let clean;
+  try { clean=clone(actions); }
+  catch(error) {
+    let index=0;
+    for(;index<actions.length;index++)if(!Object.prototype.hasOwnProperty.call(actions,index))break;
+    if(index===actions.length)index=0;
+    actionScriptError('actions must be a dense canonical array',index,0,null,error);
+  }
+  const run=createRun(cartridge,{seed});
+  for(let index=0;index<clean.length;index++){
+    try { dispatch(run,clean[index]); }
+    catch(error) { actionScriptError(`action script failed at index ${index}`,index,run.turn,clean[index],error); }
+  }
+  return run;
+}
+
+/** Reconstruct a new run a non-negative number of turns in the past. */
+export function rewindRun(run, turns=1) {
+  let d;
+  try { d=data(run); } catch(error) { bad('E_REWIND','valid run required',{cause:safeCause(error)}); }
+  if(!Number.isSafeInteger(turns)||turns<0||turns>d.turn)bad('E_REWIND',`turns must be a safe integer from 0 to ${d.turn}`,{turn:d.turn,turns});
+  const target=d.turn-turns;
+  try {
+    const rebuilt=createRun(d.cartridge,{seed:d.seed});
+    if(rebuilt.initialDigest!==d.initialDigest)bad('E_REWIND','initial state mismatch while reconstructing run');
+    for(let index=0;index<target;index++){
+      const entry=dispatch(rebuilt,d.journal[index].action),expected=d.journal[index];
+      if(entry.before!==expected.before||entry.after!==expected.after||entry.rngBefore!==expected.rngBefore||entry.rngAfter!==expected.rngAfter)bad('E_REWIND',`turn ${index} mismatch while reconstructing run`);
+    }
+    return rebuilt;
+  } catch(error) {
+    if(error instanceof LudotapeError&&error.code==='E_REWIND')throw error;
+    bad('E_REWIND','could not reconstruct run',{turn:d.turn,target,cause:safeCause(error)});
+  }
 }
 export function project(run, adapter, options={}) {
   const d=data(run);
