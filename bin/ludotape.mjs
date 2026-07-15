@@ -4,12 +4,26 @@ import {createServer} from 'node:http';
 import {extname,resolve,dirname,join,sep} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createRun,availability,verifyReplay,solve,digest,LudotapeError} from '../src/index.mjs';
+import {checkCartridge,runScenarios} from '../src/authoring.mjs';
 const MAX_REPLAY_FILE=2*1024*1024;
 const [command,...args]=process.argv.slice(2);
 const fail=(m,code=1)=>{console.error(m);process.exitCode=code};
 const required=(v,name)=>{if(!v)throw new LudotapeError('E_CLI_ARGUMENT',`${name} is required`);return v};
 const integer=(v,fallback,min,max,name)=>{if(v===undefined)return fallback;const n=Number(v);if(!Number.isSafeInteger(n)||n<min||n>max)throw new LudotapeError('E_CLI_ARGUMENT',`${name} must be an integer from ${min} to ${max}`);return n};
-async function load(path){required(path,'cartridge path');const mod=await import(pathToFileURL(resolve(path)));return mod.default??mod.cartridge}
+async function loadCartridge(path){
+  required(path,'cartridge path');
+  const mod=await import(pathToFileURL(resolve(path)));
+  const cartridge=mod.default??mod.cartridge;
+  if(cartridge===undefined)throw new LudotapeError('E_CLI_CARTRIDGE_EXPORT','cartridge module must export default or named cartridge');
+  return cartridge;
+}
+async function loadScenarios(path){
+  required(path,'scenarios path');
+  const mod=await import(pathToFileURL(resolve(path)));
+  const scenarios=mod.default??mod.scenarios;
+  if(scenarios===undefined)throw new LudotapeError('E_CLI_SCENARIOS_EXPORT','scenario module must export default or named scenarios');
+  return scenarios;
+}
 const headers=Object.freeze({'x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'no-referrer','content-security-policy':"default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",'cross-origin-resource-policy':'same-origin'});
 export async function createStaticServer({port=8080,host='127.0.0.1'}={}){
   integer(String(port),8080,0,65535,'port');if(typeof host!=='string'||!host)throw new LudotapeError('E_CLI_ARGUMENT','host is required');
@@ -28,10 +42,12 @@ export async function createStaticServer({port=8080,host='127.0.0.1'}={}){
   await new Promise((ok,no)=>{server.once('error',no);server.listen(port,host,ok)});return server;
 }
 try{
- if(command==='validate'){if(args.length<1||args.length>2)throw new LudotapeError('E_CLI_ARGUMENT','validate expects cartridge and optional seed');const c=await load(args[0]),seed=integer(args[1],0,-2147483648,2147483647,'seed'),r=createRun(c,{seed});console.log(JSON.stringify({ok:true,identity:c.identity,initial:digest(r.state),actions:availability(r).length},null,2))}
- else if(command==='verify'){if(args.length!==2)throw new LudotapeError('E_CLI_ARGUMENT','verify expects cartridge and replay paths');const c=await load(args[0]),path=required(args[1],'replay path'),info=await stat(path);if(!info.isFile()||info.size>MAX_REPLAY_FILE)throw new LudotapeError('E_REPLAY_LIMIT',`replay file must not exceed ${MAX_REPLAY_FILE} bytes`);const rp=JSON.parse(await readFile(path,'utf8')),result=verifyReplay(c,rp,{maxBytes:MAX_REPLAY_FILE});console.log(JSON.stringify({...result,run:undefined},null,2));if(!result.ok)process.exitCode=1}
- else if(command==='solve'){if(args.length<1||args.length>4)throw new LudotapeError('E_CLI_ARGUMENT','solve expects cartridge and optional seed/depth/nodes');const c=await load(args[0]),result=solve(c,{seed:integer(args[1],0,-2147483648,2147483647,'seed'),maxDepth:integer(args[2],20,0,1000,'depth'),maxNodes:integer(args[3],10000,0,1000000,'nodes')});console.log(JSON.stringify(result,null,2));if(result.status!=='solved')process.exitCode=2}
+ if(command==='validate'){if(args.length<1||args.length>2)throw new LudotapeError('E_CLI_ARGUMENT','validate expects cartridge and optional seed');const c=await loadCartridge(args[0]),seed=integer(args[1],0,-2147483648,2147483647,'seed'),r=createRun(c,{seed});console.log(JSON.stringify({ok:true,identity:c.identity,initial:digest(r.state),actions:availability(r).length},null,2))}
+ else if(command==='check'){if(args.length<1||args.length>4)throw new LudotapeError('E_CLI_ARGUMENT','check expects cartridge and optional seed/depth/paths');const c=await loadCartridge(args[0]),result=checkCartridge(c,{seeds:[integer(args[1],0,-2147483648,2147483647,'seed')],maxDepth:integer(args[2],2,0,100,'depth'),maxPaths:integer(args[3],100,0,100000,'paths')});console.log(JSON.stringify(result,null,2));if(result.errors>0)process.exitCode=1}
+ else if(command==='test'){if(args.length!==2)throw new LudotapeError('E_CLI_ARGUMENT','test expects cartridge and scenarios paths');const c=await loadCartridge(args[0]),scenarios=await loadScenarios(args[1]),result=runScenarios(c,scenarios);console.log(JSON.stringify(result,null,2));if(!result.ok)process.exitCode=1}
+ else if(command==='verify'){if(args.length!==2)throw new LudotapeError('E_CLI_ARGUMENT','verify expects cartridge and replay paths');const c=await loadCartridge(args[0]),path=required(args[1],'replay path'),info=await stat(path);if(!info.isFile()||info.size>MAX_REPLAY_FILE)throw new LudotapeError('E_REPLAY_LIMIT',`replay file must not exceed ${MAX_REPLAY_FILE} bytes`);const rp=JSON.parse(await readFile(path,'utf8')),result=verifyReplay(c,rp,{maxBytes:MAX_REPLAY_FILE});console.log(JSON.stringify({...result,run:undefined},null,2));if(!result.ok)process.exitCode=1}
+ else if(command==='solve'){if(args.length<1||args.length>4)throw new LudotapeError('E_CLI_ARGUMENT','solve expects cartridge and optional seed/depth/nodes');const c=await loadCartridge(args[0]),result=solve(c,{seed:integer(args[1],0,-2147483648,2147483647,'seed'),maxDepth:integer(args[2],20,0,1000,'depth'),maxNodes:integer(args[3],10000,0,1000000,'nodes')});console.log(JSON.stringify(result,null,2));if(result.status!=='solved')process.exitCode=2}
  else if(command==='benchmark'){if(args.length)throw new LudotapeError('E_CLI_ARGUMENT','benchmark takes no arguments');await import('../bench/benchmark.mjs')}
  else if(command==='serve'){if(args.length>2)throw new LudotapeError('E_CLI_ARGUMENT','serve expects optional port and host');const port=integer(args[0],8080,0,65535,'port'),host=args[1]??'127.0.0.1',server=await createStaticServer({port,host}),address=server.address();console.log(`Ludotape Studio (local development only): http://${host}:${address.port}`)}
- else fail('Usage: ludotape <validate cartridge.mjs [seed] | verify cartridge.mjs replay.json | solve cartridge.mjs [seed depth nodes] | benchmark | serve [port [host]]>')
+ else fail('Usage: ludotape <validate cartridge.mjs [seed] | check cartridge.mjs [seed [depth [paths]]] | test cartridge.mjs scenarios.mjs | verify cartridge.mjs replay.json | solve cartridge.mjs [seed depth nodes] | benchmark | serve [port [host]]>')
 }catch(e){fail(`${e.code??e.name}: ${e.message}`)}

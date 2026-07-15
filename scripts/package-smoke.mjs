@@ -48,13 +48,20 @@ try {
   run(process.execPath, [
     '--input-type=module',
     '--eval',
-    "await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor','ludotape/authoring'].map(x=>import(x)))"
+    "await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor'].map(x=>import(x)));const authoring=await import('ludotape/authoring');if(typeof authoring.checkCartridge!=='function'||typeof authoring.runScenarios!=='function')throw new Error('missing authoring exports')"
   ], consumer);
 
   const cli = join(packageRoot, 'bin', 'ludotape.mjs');
   const example = join(packageRoot, 'examples', 'basic-counter.mjs');
+  const scenarios = join(packageRoot, 'examples', 'basic-counter.scenarios.mjs');
   const validation = JSON.parse(run(process.execPath, [cli, 'validate', example], consumer));
   assert.equal(validation.ok, true);
+  const check = JSON.parse(run(process.execPath, [cli, 'check', example, '0', '1', '4'], consumer));
+  assert.equal(check.ok, true);
+  assert.equal(check.coverage.seeds, 1);
+  assert.ok(check.coverage.paths <= 4);
+  const scenarioTest = JSON.parse(run(process.execPath, [cli, 'test', example, scenarios], consumer));
+  assert.equal(scenarioTest.ok, true);
   const benchmark = JSON.parse(run(process.execPath, [cli, 'benchmark'], consumer));
   assert.equal(benchmark.format, 'ludotape/benchmark@1');
   await assert.rejects(access(join(packageRoot, 'bench', 'results.json')));
