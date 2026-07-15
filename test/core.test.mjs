@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {canonical,digest,createRng,defineGame,compileCartridge,createRun,availability,legalActions,dispatch,project,createReplay,verifyReplay,solve,LudotapeError,clone} from '../src/index.mjs';import {createMemoryRepository,createStorageRepository} from '../src/storage.mjs';import {createDraft} from '../src/editor.mjs';import warehouse from '../examples/warehouse-circuit.mjs';import cards from '../examples/card-duel.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import {canonical,digest,sha256Text,createRng,defineGame,compileCartridge,createRun,availability,legalActions,dispatch,project,createReplay,verifyReplay,solve,LudotapeError,clone} from '../src/index.mjs';import {createMemoryRepository,createStorageRepository} from '../src/storage.mjs';import {createDraft} from '../src/editor.mjs';import warehouse from '../examples/warehouse-circuit.mjs';import cards from '../examples/card-duel.mjs';
 const counter=defineGame({id:'counter',version:'1',initialState:()=>({n:0}),actions:s=>s.n<3?[{type:'inc'}]:[],transition:s=>({n:s.n+1}),isGoal:s=>s.n===3,project:s=>({label:String(s.n)})});const cart=compileCartridge(counter,{title:'x'});
 test('canonical sorts object keys',()=>assert.equal(canonical({b:1,a:2}),'{"a":2,"b":1}'));
 test('canonical retains array order',()=>assert.equal(canonical([2,1]),'[2,1]'));
@@ -10,8 +10,8 @@ test('canonical rejects undefined',()=>assert.throws(()=>canonical({x:undefined}
 test('canonical rejects functions',()=>assert.throws(()=>canonical(()=>0),/Unsupported/));
 test('canonical rejects cycles',()=>{const x={};x.x=x;assert.throws(()=>canonical(x),/Cycle/)});
 test('canonical rejects Date objects',()=>assert.throws(()=>canonical(new Date()),/Non-plain/));
-test('SHA-256 empty vector',()=>assert.equal(digest(''),'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
-test('SHA-256 abc vector',()=>assert.equal(digest('abc'),'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'));
+test('SHA-256 empty vector',()=>assert.equal(sha256Text(''),'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
+test('SHA-256 abc vector',()=>assert.equal(sha256Text('abc'),'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'));
 test('object digest is canonical',()=>assert.equal(digest({a:1,b:2}),digest({b:2,a:1})));
 test('digest changes with content',()=>assert.notEqual(digest({a:1}),digest({a:2})));
 test('clone deeply separates objects',()=>{const x={a:{b:1}},y=clone(x);y.a.b=2;assert.equal(x.a.b,1)});
@@ -43,7 +43,7 @@ test('projection accepts adapter',()=>assert.equal(project(createRun(cart),v=>v.
 test('replay captures all turns',()=>{const r=createRun(cart);dispatch(r,{type:'inc'});assert.equal(createReplay(r).actions.length,1)});
 test('valid replay verifies',()=>{const r=createRun(cart);dispatch(r,{type:'inc'});assert.equal(verifyReplay(cart,createReplay(r)).ok,true)});
 test('tampered action fails replay',()=>{const r=createRun(cart);dispatch(r,{type:'inc'});const p=createReplay(r);p.actions[0]={type:'bad'};assert.equal(verifyReplay(cart,p).ok,false)});
-test('tampered checkpoint fails replay',()=>{const r=createRun(cart);dispatch(r,{type:'inc'});const p=createReplay(r);p.checkpoints[0]='bad';assert.equal(verifyReplay(cart,p).error.code,'E_CHECKPOINT')});
+test('tampered checkpoint fails replay',()=>{const r=createRun(cart);dispatch(r,{type:'inc'});const p=createReplay(r);p.checkpoints[0]='0'.repeat(64);assert.equal(verifyReplay(cart,p).error.code,'E_CHECKPOINT')});
 test('foreign cartridge fails replay',()=>{const r=createRun(cart),p=createReplay(r);assert.equal(verifyReplay(compileCartridge(counter,{other:1}),p).error.code,'E_IDENTITY')});
 test('BFS solves counter',()=>{const s=solve(cart,{maxDepth:4});assert.equal(s.status,'solved');assert.equal(s.depth,3)});
 test('BFS respects depth bound',()=>assert.notEqual(solve(cart,{maxDepth:2}).status,'solved'));

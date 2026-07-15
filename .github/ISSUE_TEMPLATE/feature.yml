@@ -1,0 +1,16 @@
+name: Feature request
+description: Propose a scoped framework improvement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed contract
+      description: Explain determinism, compatibility, limits, and zero-dependency impact.
+    validations:
+      required: true

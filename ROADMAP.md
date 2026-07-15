@@ -1,15 +1,12 @@
 # Roadmap
 
-## 0.1
-- stabilize core vocabulary and format fixtures
-- broaden malformed-input and browser integration tests
-- improve Studio keyboard/accessibility behavior
+Version 0.1.0 is the current release documented in the changelog and package metadata.
 
-## Later candidates
-- opt-in IndexedDB repository
-- replay checkpoint intervals and migration tools
-- solver strategy interface beyond bounded BFS
-- published compatibility matrix based on measured runtimes
+## 0.2 candidates
 
-## Explicitly not planned as core
-Callback sandboxing, authoritative multiplayer, asset bundling, physics, monetization, and anti-cheat. Roadmap items are intentions, not commitments.
+- Browser integration coverage and Studio keyboard/accessibility improvements.
+- Replay migration tooling and optional checkpoint intervals.
+- An opt-in IndexedDB repository and solver strategy interface.
+- A measured runtime compatibility matrix.
+
+Callback sandboxing, authoritative multiplayer, asset bundling, physics, monetization, and anti-cheat are explicitly outside core scope. Roadmap items are intentions, not commitments.

@@ -1,7 +1,7 @@
 # Determinism contract
 
-Determinism is shared responsibility. Ludotape supplies canonical cloning/hashing and a seeded RNG. Authors must avoid wall clocks, `Math.random`, locale-sensitive operations, host I/O, unordered external data, mutable globals, and asynchronous races in all callbacks. Use finite numeric values and consider integers for portable game arithmetic.
+Determinism is shared responsibility. Ludotape supplies bounded canonical cloning/value hashing and seeded transactional RNG. Authors must avoid wall clocks, `Math.random`, locale-sensitive operations, host I/O, unordered external data, mutable globals, and asynchronous races. Use finite values and prefer integers for portable arithmetic.
 
-A seed drives one RNG stream: initial-state generation may consume it, and transitions continue it. Replaying repeats that sequence. Callback source is not hashed; bump the ruleset version after any semantic code change.
+A seed drives one committed RNG stream. `initialState` may consume it. Each legal `transition` receives a transaction-local continuation; the continuation commits only when output validates. `actions`, `project`, and `isGoal` receive no RNG and cannot consume the stream. Replay reproduces state and RNG progression. Callback source is not hashed, so bump ruleset version after every semantic code change.
 
-The test suite establishes behavior on its tested runtime. JavaScript standards reduce variation, but Ludotape does not claim unproven bit-identical results across all engines, architectures, or future versions.
+The test suite establishes behavior on tested runtimes. Ludotape does not claim unmeasured bit-identical floating-point results across every engine, architecture, or future version.

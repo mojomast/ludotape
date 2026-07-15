@@ -1,0 +1,23 @@
+import test,{before,after} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn,spawnSync} from 'node:child_process';
+import {request} from 'node:http';
+import {writeFile,symlink,rm} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const root=resolve(new URL('..',import.meta.url).pathname);let child,port;
+function req(path,{method='GET'}={}){return new Promise((ok,no)=>{const r=request({host:'127.0.0.1',port,path,method},res=>{const chunks=[];res.on('data',x=>chunks.push(x));res.on('end',()=>ok({status:res.statusCode,headers:res.headers,body:Buffer.concat(chunks)}))});r.on('error',no);r.end()})}
+before(async()=>{const b=spawnSync(process.execPath,['scripts/build.mjs'],{cwd:root,encoding:'utf8'});assert.equal(b.status,0,b.stderr);await writeFile(resolve(root,'dist/.secret'),'secret');await symlink(resolve(root,'package.json'),resolve(root,'dist/escape.json'));child=spawn(process.execPath,['bin/ludotape.mjs','serve','0'],{cwd:root,stdio:['ignore','pipe','pipe']});port=await new Promise((ok,no)=>{let out='';const timer=setTimeout(()=>no(Error('server timeout')),5000);child.stdout.on('data',d=>{out+=d;const m=out.match(/127\.0\.0\.1:(\d+)/);if(m){clearTimeout(timer);ok(Number(m[1]))}});child.once('exit',c=>no(Error(`server exited ${c}`)));child.once('error',no)})});
+after(async()=>{child?.kill();await rm(resolve(root,'dist'),{recursive:true,force:true})});
+test('static server serves dist Studio',async()=>assert.equal((await req('/studio/')).status,200));
+test('static server supports HEAD without body',async()=>{const r=await req('/studio/',{method:'HEAD'});assert.equal(r.status,200);assert.equal(r.body.length,0);assert.ok(Number(r.headers['content-length'])>0)});
+test('static server rejects POST with Allow',async()=>{const r=await req('/studio/',{method:'POST'});assert.equal(r.status,405);assert.equal(r.headers.allow,'GET, HEAD')});
+test('static server rejects PUT',async()=>assert.equal((await req('/studio/',{method:'PUT'})).status,405));
+test('static server blocks encoded traversal',async()=>assert.equal((await req('/%2e%2e/package.json')).status,404));
+test('static server blocks dotfiles',async()=>assert.equal((await req('/.secret')).status,404));
+test('static server blocks .git paths',async()=>assert.equal((await req('/.git/config')).status,404));
+test('static server blocks symlink escape',async()=>assert.equal((await req('/escape.json')).status,404));
+test('static server sends nosniff',async()=>assert.equal((await req('/studio/')).headers['x-content-type-options'],'nosniff'));
+test('static server sends restrictive CSP',async()=>assert.match((await req('/studio/')).headers['content-security-policy'],/object-src 'none'/));
+test('static server sends no-store',async()=>assert.equal((await req('/studio/')).headers['cache-control'],'no-store'));
+test('CLI rejects invalid solve depth',()=>{const r=spawnSync(process.execPath,['bin/ludotape.mjs','solve','examples/warehouse-circuit.mjs','0','x'],{cwd:root,encoding:'utf8'});assert.equal(r.status,1);assert.match(r.stderr,/E_CLI_ARGUMENT/)});
+test('CLI rejects extra validate arguments',()=>{const r=spawnSync(process.execPath,['bin/ludotape.mjs','validate','examples/warehouse-circuit.mjs','0','extra'],{cwd:root,encoding:'utf8'});assert.equal(r.status,1);assert.match(r.stderr,/E_CLI_ARGUMENT/)});

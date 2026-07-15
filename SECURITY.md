@@ -1,5 +1,5 @@
 # Security policy
 
-Ludotape callbacks and imported cartridges are trusted JavaScript and are not sandboxed. Never import an untrusted `.mjs` game in the CLI, Studio, or an application. Replay and document JSON should be treated as untrusted input; bound file size and solver limits at application edges. Digests detect mismatch but are not signatures or anti-cheat.
+Ludotape callbacks and imported cartridges are trusted JavaScript and are not sandboxed. Never import an untrusted `.mjs` game in the CLI, Studio, or an application. Replay and document JSON are untrusted input. Digests detect mismatch but are not signatures or anti-cheat.
 
-No private disclosure channel is configured in this standalone repository. Until one exists, avoid publishing exploit details: contact the repository owner through the channel from which you received the project. Include affected version, reproduction, impact, and mitigation. Supported line: current unreleased/0.x head only.
+Report vulnerabilities privately through [GitHub private vulnerability reporting](https://github.com/mojomast/ludotape/security/advisories/new). Include affected version, minimal reproduction, impact, and suggested mitigation. Do not open a public issue for an undisclosed vulnerability. The supported line is 0.1.x and the current main branch.

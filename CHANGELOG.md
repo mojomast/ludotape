@@ -1,13 +1,11 @@
 # Changelog
 
-All notable changes are recorded here. The project follows Keep a Changelog concepts but has not promised semantic-version stability before 1.0.
+This project follows Keep a Changelog. Semantic-version stability is not promised before 1.0.
 
-## [Unreleased]
+## [0.1.0]
 
-### Added
-- deterministic core, canonical SHA-256 identity, seeded RNG
-- runs, legal dispatch, projections, replay verification, bounded BFS
-- memory/storage repositories and headless draft editor
-- semantic and Canvas adapters, static Studio
-- Warehouse Circuit and Seeded Card Duel
-- dependency-free CLI, tests, build, smoke, benchmark, and documentation
+- Deterministic core with bounded hostile-safe canonicalization and distinct raw-text/value SHA-256 APIs.
+- Deeply frozen identity-bound cartridges, transactional RNG, isolated runs/journals/projections.
+- Strict bounded replay validation and execution-state-aware bounded BFS.
+- Memory and Web Storage repositories, draft editor, adapters, Studio, two examples, and hardened loopback static server.
+- Zero-dependency CLI, 100+ tests, build, smoke, benchmark, documentation, and contribution templates.
