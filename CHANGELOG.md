@@ -2,6 +2,14 @@
 
 This project follows Keep a Changelog. Semantic-version stability is not promised before 1.0.
 
+## [Unreleased]
+
+- Added incremental replay cursors, one-time missing-projector warnings, validated solver goals, memoized SHA constants, and a reclaiming BFS queue.
+- Added draft redo/history metadata and validated draft restoration.
+- Added canonical Web Storage writes, a lazy IndexedDB repository, terminal rendering, responsive canvas redraws, and richer semantic ARIA output.
+- Hardened Studio state, parsing and seed errors, deterministic rewind reconstruction, tabs, and keyboard shortcuts.
+- Added focused editor, storage, and adapter regression suites.
+
 ## [0.1.0]
 
 - Deterministic core with bounded hostile-safe canonicalization and distinct raw-text/value SHA-256 APIs.

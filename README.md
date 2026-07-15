@@ -9,11 +9,12 @@ git clone https://github.com/mojomast/ludotape.git
 cd ludotape
 npm test
 npm run build
+npm run smoke
 node bin/ludotape.mjs validate examples/warehouse-circuit.mjs
 node bin/ludotape.mjs serve
 ```
 
-Open `http://127.0.0.1:8080/studio/`. `dist/` is generated and ignored, so build before serving a fresh checkout. The server binds loopback and is for trusted local development only; it is not a production server.
+Open `http://127.0.0.1:8080/studio/`. Studio supports deterministic one-turn rewind, replay verification, accessible tab navigation, and visible keyboard shortcuts. `dist/` is generated and ignored, so build before serving a fresh checkout. The server binds loopback and is for trusted local development only; it is not a production server.
 
 ```js
 import {createRun, availability, dispatch, createReplay} from 'ludotape';
@@ -25,7 +26,7 @@ console.log(createReplay(run));
 
 ## Included
 
-Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG, isolated runs and journals, strict bounded replay verification, bounded BFS solving, memory/Web Storage repositories, draft editing, browser adapters, Studio, CLI, and two example games.
+Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG, isolated runs and journals, strict bounded replay verification with step cursors, bounded BFS solving, memory/Web Storage/IndexedDB repositories, undoable draft editing, browser and terminal adapters, Studio, CLI, and two example games.
 
 ## Trust and scope
 

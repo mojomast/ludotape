@@ -12,6 +12,7 @@
 - `dispatch(run, action)` — legal transactional transition and frozen journal entry.
 - `project(run, adapter?, limits?)` — validates/freezes projection; adapter receives `(view, snapshotMetadata)`, never the run.
 - `createReplay(run)` / `replay.create(run)` — isolated replay object.
+- `createReplayCursor(cartridge, replay, limits?)` — frozen incremental replay controller with `turn`, `run`, `done`, `step()`, `stepAll()`, and `verify()`.
 - `verifyReplay(cartridge, replay, limits?)` / `replay.verify(...)` — non-throwing `{ok,...}` for verification failures.
 - `solve(cartridge, options?)` — bounded FIFO BFS. Options: `seed`, `maxDepth`, `maxNodes`, `maxActions`, `maxGenerated`, `maxQueue`, `maxStateBytes`, `isGoal`.
 
@@ -20,9 +21,15 @@ Only `initialState(context)` and `transition(state, action, context)` receive `c
 ## Subpaths
 
 ```js
-import {semanticAdapter, canvasAdapter} from 'ludotape/adapters';
-import {createMemoryRepository, createStorageRepository} from 'ludotape/storage';
-import {createDraft} from 'ludotape/editor';
+import {semanticAdapter, canvasAdapter, terminalAdapter} from 'ludotape/adapters';
+import {createMemoryRepository, createStorageRepository, createIndexedDbRepository} from 'ludotape/storage';
+import {createDraft, restoreDraft} from 'ludotape/editor';
 ```
 
 Repository methods are asynchronous: `put(key,value)`, `get(key)`, `delete(key)`, `list(prefix?)`, and `clear()`. Contract failures are `LudotapeError` values with stable `code` strings.
+
+`createIndexedDbRepository(dbName, storeName, options?)` opens lazily and stores canonical JSON. Its `size` getter is asynchronous and resolves to the object-store count. The factory throws `E_IDB_UNAVAILABLE` immediately when IndexedDB is absent.
+
+Drafts support `replace`, `update`, `undo`, `redo`, `historyLength`, `redoLength`, snapshots, and `markSaved()`. `restoreDraft(snapshot)` validates a `ludotape/draft@1` digest and resumes at the saved revision with empty history.
+
+`terminalAdapter(writeFn, {depth?, indent?})` emits deterministic indented text. `semanticAdapter` emits ARIA tree/list roles, while `canvasAdapter` redraws its last frame when `ResizeObserver` reports a size change.
