@@ -64,6 +64,39 @@ test('runScenario supports initial and per-step expectations', () => {
   assert.equal(result.name, 'scenario-1');
 });
 
+test('runScenario rejects unknown and ambiguous scenario and step fields', () => {
+  for (const scenario of [
+    {actions: [], typo: true},
+    {actions: [], steps: []},
+    {steps: [{action: {type: 'add', amount: 1}, typo: true}]},
+    {steps: [{action: {type: 'add', amount: 1}, expect: {}, projection: {text: '1'}}]}
+  ]) {
+    const result = runScenario(cartridge, scenario);
+    assert.equal(result.ok, false);
+    assert.equal(result.diagnostics[0].code, 'E_SCENARIO_SHAPE');
+  }
+});
+
+test('runScenario snapshots declarations and safely rejects hostile accessors', () => {
+  let accessed = false;
+  const scenario = {};
+  Object.defineProperty(scenario, 'name', {enumerable: true, get() { accessed = true; throw new Error('gotcha'); }});
+  let result;
+  assert.doesNotThrow(() => { result = runScenario(cartridge, scenario); });
+  assert.equal(accessed, false);
+  assert.equal(result.ok, false);
+  assert.equal(result.name, 'scenario-1');
+  assert.doesNotThrow(() => JSON.stringify(result));
+
+  const hostileList = [];
+  Object.defineProperty(hostileList, '0', {enumerable: true, configurable: true, get() { throw new Error('gotcha'); }});
+  hostileList.length = 1;
+  let aggregate;
+  assert.doesNotThrow(() => { aggregate = runScenarios(cartridge, hostileList); });
+  assert.equal(aggregate.ok, false);
+  assert.doesNotThrow(() => JSON.stringify(aggregate));
+});
+
 test('scenario mismatches are nonthrowing stable diagnostics with context', () => {
   const result = runScenario(cartridge, {
     name: 'wrong result',
@@ -85,6 +118,41 @@ test('scenario execution failures are returned rather than thrown', () => {
   assert.equal(result.diagnostics[0].code, 'E_ILLEGAL_ACTION');
   assert.equal(result.diagnostics[0].step, 1);
   assert.equal(result.trace, null);
+});
+
+test('observation failures report step, phase, and clear projection classification', () => {
+  const initialFailure = compileCartridge(defineGame({
+    id: 'initial-projection-failure', version: '1', initialState: () => ({n: 0}),
+    actions: () => [], transition: state => state, project: () => { throw new Error('initial boom'); }
+  }));
+  const initial = runScenario(initialFailure, {});
+  assert.equal(initial.ok, false);
+  assert.deepEqual(
+    {code: initial.diagnostics[0].code, step: initial.diagnostics[0].step, phase: initial.diagnostics[0].phase, path: initial.diagnostics[0].path},
+    {code: 'E_AUTHORING_PROJECTION', step: 0, phase: 'initial', path: 'projection'}
+  );
+
+  const postFailure = compileCartridge(defineGame({
+    id: 'post-projection-failure', version: '1', initialState: () => ({n: 0}),
+    actions: state => state.n ? [] : [{type: 'go'}],
+    transition: () => ({n: 1}),
+    project: state => {
+      if (state.n) throw new Proxy({}, {get() { throw new Error('hostile error'); }});
+      return {n: state.n};
+    }
+  }));
+  let post;
+  assert.doesNotThrow(() => { post = runScenario(postFailure, {actions: [{type: 'go'}]}); });
+  assert.deepEqual(
+    {code: post.diagnostics[0].code, step: post.diagnostics[0].step, phase: post.diagnostics[0].phase, path: post.diagnostics[0].path},
+    {code: 'E_AUTHORING_PROJECTION', step: 1, phase: 'post-action', path: 'projection'}
+  );
+  assert.doesNotThrow(() => JSON.stringify(post));
+
+  const checked = checkCartridge(initialFailure, {maxDepth: 0});
+  assert.equal(checked.diagnostics[0].code, 'E_CHECK_PROJECTION');
+  assert.equal(checked.diagnostics[0].location, 'projection');
+  assert.equal(checked.diagnostics[0].phase, 'initial');
 });
 
 test('runScenarios preserves order, names anonymous scenarios, and aggregates diagnostics', () => {
@@ -149,7 +217,17 @@ test('checkCartridge catches nondeterministic twin execution as an error', () =>
   assert.ok(result.diagnostics.some(item => item.code === 'E_CHECK_TWIN'));
 });
 
+test('checkCartridge reports only actually explored seed, path, and transition coverage', () => {
+  const result = checkCartridge(cartridge, {seeds: [0, 1], maxDepth: 1, maxPaths: 1});
+  assert.equal(result.coverage.seeds, 1);
+  assert.equal(result.coverage.paths, 1);
+  assert.equal(result.coverage.transitions, 0);
+  assert.equal(result.coverage.pathLimited, true);
+});
+
 test('checkCartridge validates bounds', () => {
   assert.throws(() => checkCartridge(cartridge, {maxDepth: -1}), error => error.code === 'E_AUTHORING_LIMIT');
+  assert.throws(() => checkCartridge(cartridge, {maxPaths: 0}), error => error.code === 'E_AUTHORING_LIMIT');
+  assert.throws(() => checkCartridge(cartridge, {seeds: []}), error => error.code === 'E_AUTHORING_SEEDS');
   assert.throws(() => checkCartridge(cartridge, {seeds: 'no'}), error => error.code === 'E_AUTHORING_SEEDS');
 });
