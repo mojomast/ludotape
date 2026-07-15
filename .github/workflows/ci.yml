@@ -27,16 +27,10 @@ jobs:
           node-version: 22
       # typescript is fetched ad hoc for this job only via `npx --yes`; it is never a
       # package dependency (repo stays zero-dependency, dev or otherwise). The declaration
-      # files being checked are owned by other work streams and may not exist yet, so this
-      # step guards on their presence and passes gracefully until they land.
-      - name: Type-check declaration files (if present)
+      - name: Type-check declaration files
         run: |
-          if [ -f types/ludotape.d.ts ] && [ -f src/cores/js-ts-core/types.d.ts ]; then
-            npx --yes typescript@5 tsc --noEmit --strict --module nodenext --moduleResolution nodenext \
-              types/ludotape.d.ts src/cores/js-ts-core/types.d.ts
-          else
-            echo "Skipping typecheck: types/ludotape.d.ts and/or src/cores/js-ts-core/types.d.ts not present yet."
-          fi
+          npx --yes -p typescript@5 tsc --noEmit --strict --module nodenext --moduleResolution nodenext \
+            types/ludotape.d.ts types/core.d.ts src/cores/js-ts-core/types.d.ts
 
   test:
     name: test (node ${{ matrix.node }})

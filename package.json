@@ -10,7 +10,7 @@
     "./storage": "./src/storage.mjs",
     "./editor": "./src/editor.mjs",
     "./authoring": "./src/authoring.mjs",
-    "./core": "./src/core-loader.mjs",
+    "./core": {"types": "./types/core.d.ts", "default": "./src/core-loader.mjs"},
     "./devkit": "./devkit/index.mjs",
     "./js-ts-core": { "types": "./src/cores/js-ts-core/types.d.ts", "default": "./src/cores/js-ts-core/index.mjs" },
     "./conformance": "./test/core-conformance.mjs"
