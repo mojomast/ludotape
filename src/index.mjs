@@ -2,6 +2,8 @@
 const enc = new TextEncoder();
 const DANGEROUS = new Set(['__proto__', 'prototype', 'constructor']);
 const DEFAULT_LIMITS = Object.freeze({maxDepth: 100, maxNodes: 100000, maxBytes: 8 * 1024 * 1024});
+// Prevent dice() from allocating an impractically large result in one call.
+const MAX_DICE_COUNT = 100000;
 const K = new Uint32Array(64);
 for (let i = 0, candidate = 2; i < K.length; candidate++) {
   let prime = true;
@@ -144,7 +146,7 @@ export function createRng(seed = 0, internalState) {
     die(sides=6){if(!Number.isSafeInteger(sides)||sides<=0)bad('E_RNG','sides must be a positive safe integer');return this.int(sides)+1},
     dice(sides,count){
       if(!Number.isSafeInteger(sides)||sides<=0)bad('E_RNG','sides must be a positive safe integer');
-      if(!Number.isSafeInteger(count)||count<0)bad('E_RNG','count must be a non-negative safe integer');
+      if(!Number.isSafeInteger(count)||count<0||count>MAX_DICE_COUNT)bad('E_RNG',`count must be a safe integer from 0 to ${MAX_DICE_COUNT}`);
       const rolls=new Array(count);for(let i=0;i<count;i++)rolls[i]=this.die(sides);return rolls;
     },
     get state(){return s}
@@ -170,7 +172,9 @@ export function compileCartridge(game, document = {}) {
 }
 
 /** Define a game and compile it with its authoring document in one step. */
-export function defineCartridge({document={},...gameSpec}={}) {
+export function defineCartridge(spec={}) {
+  if(!spec||typeof spec!=='object'||Array.isArray(spec))bad('E_GAME','cartridge specification must be an object');
+  const {document={},...gameSpec}=spec;
   return compileCartridge(defineGame(gameSpec),document);
 }
 
@@ -258,6 +262,8 @@ export function rewindRun(run, turns=1) {
   try {
     const rebuilt=createRun(d.cartridge,{seed:d.seed});
     if(rebuilt.initialDigest!==d.initialDigest)bad('E_REWIND','initial state mismatch while reconstructing run');
+    const rebuiltData=data(rebuilt), expectedInitialRng=d.journal.length?d.journal[0].rngBefore:d.rngState;
+    if(rebuiltData.rngState!==expectedInitialRng)bad('E_REWIND','initial RNG state mismatch while reconstructing run');
     for(let index=0;index<target;index++){
       const entry=dispatch(rebuilt,d.journal[index].action),expected=d.journal[index];
       if(entry.before!==expected.before||entry.after!==expected.after||entry.rngBefore!==expected.rngBefore||entry.rngAfter!==expected.rngAfter)bad('E_REWIND',`turn ${index} mismatch while reconstructing run`);

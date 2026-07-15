@@ -9,7 +9,7 @@ const MAX_REPLAY_FILE=2*1024*1024;
 const [command,...args]=process.argv.slice(2);
 const fail=(m,code=1)=>{console.error(m);process.exitCode=code};
 const required=(v,name)=>{if(!v)throw new LudotapeError('E_CLI_ARGUMENT',`${name} is required`);return v};
-const integer=(v,fallback,min,max,name)=>{if(v===undefined)return fallback;const n=Number(v);if(!Number.isSafeInteger(n)||n<min||n>max)throw new LudotapeError('E_CLI_ARGUMENT',`${name} must be an integer from ${min} to ${max}`);return n};
+const integer=(v,fallback,min,max,name)=>{if(v===undefined)return fallback;if(typeof v!=='string'||!/^[-]?\d+$/.test(v))throw new LudotapeError('E_CLI_ARGUMENT',`${name} must be an integer from ${min} to ${max}`);const n=Number(v);if(!Number.isSafeInteger(n)||n<min||n>max)throw new LudotapeError('E_CLI_ARGUMENT',`${name} must be an integer from ${min} to ${max}`);return n};
 async function loadCartridge(path){
   required(path,'cartridge path');
   const mod=await import(pathToFileURL(resolve(path)));

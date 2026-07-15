@@ -25,6 +25,12 @@ test('defineCartridge is identity- and behavior-equivalent to the explicit compo
   assert.deepEqual(runActions(cartridge, rolls(3), {seed: 91}).state, runActions(explicit, rolls(3), {seed: 91}).state);
 });
 
+test('defineCartridge reports invalid inputs with stable E_GAME errors', () => {
+  for (const input of [null, false, 1, 'game', [], () => ({})]) {
+    code(() => defineCartridge(input), 'E_GAME');
+  }
+});
+
 test('runActions has golden seeded repeatability', () => {
   const first = runActions(cartridge, rolls(3), {seed: 42});
   const second = runActions(cartridge, rolls(3), {seed: 42});
@@ -75,6 +81,26 @@ test('rewindRun validates turn bounds with E_REWIND', () => {
   assert.equal(rewindRun(run, run.turn).turn, 0);
 });
 
+test('rewindRun verifies RNG consumption while rebuilding the initial state', () => {
+  let calls = 0;
+  const nondeterministic = defineCartridge({
+    id: 'nondeterministic-initial-rng', version: '1',
+    initialState: ({rng}) => {
+      rng.next();
+      if (calls++ > 0) rng.next();
+      return {ready: true};
+    },
+    actions: () => [{type: 'wait'}],
+    transition: state => state
+  });
+  const untouched = runActions(nondeterministic, [], {seed: 12});
+  code(() => rewindRun(untouched, 0), 'E_REWIND');
+
+  calls = 0;
+  const advanced = runActions(nondeterministic, [{type: 'wait'}], {seed: 12});
+  code(() => rewindRun(advanced, 1), 'E_REWIND');
+});
+
 test('RNG shuffle is nonmutating and follows a stable golden sequence', () => {
   const input = [1, 2, 3, 4, 5];
   const rng = createRng(0);
@@ -101,6 +127,7 @@ test('RNG helper consumption and bounds are stable', () => {
     code(() => createRng().die(sides), 'E_RNG');
     code(() => createRng().dice(sides, 1), 'E_RNG');
   }
-  for (const count of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) code(() => createRng().dice(6, count), 'E_RNG');
+  for (const count of [-1, 1.5, 100001, Number.MAX_SAFE_INTEGER + 1]) code(() => createRng().dice(6, count), 'E_RNG');
+  assert.equal(createRng().dice(1, 100000).length, 100000);
   code(() => createRng().shuffle({length: 0}), 'E_RNG');
 });

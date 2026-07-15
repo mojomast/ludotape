@@ -48,7 +48,7 @@ try {
   run(process.execPath, [
     '--input-type=module',
     '--eval',
-    "await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor'].map(x=>import(x)));const authoring=await import('ludotape/authoring');if(typeof authoring.checkCartridge!=='function'||typeof authoring.runScenarios!=='function')throw new Error('missing authoring exports')"
+    "const [root]=await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor'].map(x=>import(x)));const authoring=await import('ludotape/authoring');if(typeof authoring.checkCartridge!=='function'||typeof authoring.runScenarios!=='function')throw new Error('missing authoring exports');for(const name of ['defineCartridge','runActions','rewindRun','createRng'])if(typeof root[name]!=='function')throw new Error('missing root export '+name);const cartridge=root.defineCartridge({id:'package-smoke',version:'1',initialState:({rng})=>({roll:rng.die()}),actions:()=>[{type:'roll'}],transition:(state,action,{rng})=>({roll:rng.dice(6,2)[0]})});const execution=root.runActions(cartridge,[{type:'roll'}],{seed:3});if(root.rewindRun(execution,1).turn!==0)throw new Error('root helpers failed');const rng=root.createRng(1);if(typeof rng.next!=='function'||typeof rng.int!=='function'||typeof rng.pick!=='function'||typeof rng.shuffle!=='function'||typeof rng.die!=='function'||typeof rng.dice!=='function'||typeof rng.state!=='number')throw new Error('missing RNG helpers')"
   ], consumer);
 
   const cli = join(packageRoot, 'bin', 'ludotape.mjs');
@@ -56,6 +56,9 @@ try {
   const scenarios = join(packageRoot, 'examples', 'basic-counter.scenarios.mjs');
   const validation = JSON.parse(run(process.execPath, [cli, 'validate', example], consumer));
   assert.equal(validation.ok, true);
+  const shim = join(consumer, 'node_modules', '.bin', 'ludotape');
+  const shimValidation = JSON.parse(run(shim, ['validate', example], consumer));
+  assert.equal(shimValidation.ok, true);
   const check = JSON.parse(run(process.execPath, [cli, 'check', example, '0', '1', '4'], consumer));
   assert.equal(check.ok, true);
   assert.equal(check.coverage.seeds, 1);

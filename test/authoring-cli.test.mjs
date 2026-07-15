@@ -104,3 +104,15 @@ test('CLI reports stable errors immediately for missing cartridge and scenario e
   assert.equal(scenarioResult.stdout, '');
   assert.equal(scenarioResult.stderr, 'E_CLI_SCENARIOS_EXPORT: scenario module must export default or named scenarios\n');
 });
+
+test('CLI integer arguments require strict signed decimal syntax', () => {
+  for (const seed of ['1e2', '0x10', ' 1', '1 ', '+1']) {
+    const result = run(['validate', 'examples/basic-counter.mjs', seed]);
+    assert.equal(result.status, 1, `accepted invalid integer ${JSON.stringify(seed)}`);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /^E_CLI_ARGUMENT:/);
+  }
+  const valid = run(['validate', 'examples/basic-counter.mjs', '-1']);
+  assert.equal(valid.status, 0, valid.stderr);
+  assert.equal(JSON.parse(valid.stdout).ok, true);
+});
