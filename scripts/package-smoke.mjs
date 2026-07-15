@@ -48,7 +48,7 @@ try {
   run(process.execPath, [
     '--input-type=module',
     '--eval',
-    "await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor'].map(x=>import(x)))"
+    "await Promise.all(['ludotape','ludotape/adapters','ludotape/storage','ludotape/editor','ludotape/authoring'].map(x=>import(x)))"
   ], consumer);
 
   const cli = join(packageRoot, 'bin', 'ludotape.mjs');

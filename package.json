@@ -4,7 +4,7 @@
   "description": "Games you can rewind: deterministic browser-game framework",
   "type": "module",
   "engines": { "node": ">=20" },
-  "exports": { ".": "./src/index.mjs", "./adapters": "./src/adapters.mjs", "./storage": "./src/storage.mjs", "./editor": "./src/editor.mjs" },
+  "exports": { ".": "./src/index.mjs", "./adapters": "./src/adapters.mjs", "./storage": "./src/storage.mjs", "./editor": "./src/editor.mjs", "./authoring": "./src/authoring.mjs" },
   "bin": { "ludotape": "./bin/ludotape.mjs" },
   "scripts": {
     "test": "node --test",
