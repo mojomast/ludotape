@@ -59,6 +59,13 @@ npm run example:basic
 
 See [Getting started](docs/getting-started.md) for a headless runner, replay verification, package imports, callback context, and determinism rules.
 
+When the first game is running, the [cartridge authoring toolkit](docs/cartridge-authoring-toolkit.md) adds action traces, exact scenarios, and bounded determinism/replay checks. The checked-in counter demonstrates both CLI workflows:
+
+```sh
+node bin/ludotape.mjs check examples/basic-counter.mjs 0 2 100
+node bin/ludotape.mjs test examples/basic-counter.mjs examples/basic-counter.scenarios.mjs
+```
+
 ## Source-checkout quick start
 
 Requires Git and Node.js 20+; no dependency installation is required.
@@ -88,7 +95,7 @@ console.log(project(run));
 
 ## Included
 
-Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG, isolated runs and journals, strict bounded replay verification with step cursors, bounded BFS solving, memory/Web Storage/IndexedDB repositories, undoable draft editing, browser and terminal adapters, Studio, CLI, and three tested example games.
+Canonical value digests, identity-bound frozen cartridges, transactional seeded RNG with dice and shuffle helpers, isolated runs and journals, action scripts and rewind reconstruction, strict bounded replay verification with step cursors, exact authoring scenarios, bounded cartridge checks and BFS solving, memory/Web Storage/IndexedDB repositories, undoable draft editing, browser and terminal adapters, Studio, CLI, and three tested example games.
 
 ## Trust and scope
 

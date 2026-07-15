@@ -101,6 +101,15 @@ node bin/ludotape.mjs solve examples/my-counter.mjs 0 3 100
 
 `validate` imports the cartridge, creates its initial state, and evaluates initial legal actions. The run and onboarding tests exercise transitions, projections, goals, and replays. The solver command arguments are `cartridge [seed depth nodes]`. CLI seeds are signed 32-bit integers. This game solves at depth 3 with three `{type: 'increment'}` actions. Solver results can be `solved`, `unsolved`, or `bounded`; always use explicit bounds appropriate to the game.
 
+`validate` is intentionally shallow. After the basic flow is working, run bounded exploration and the checked-in exact scenario without changing the cartridge:
+
+```sh
+node bin/ludotape.mjs check examples/basic-counter.mjs 0 2 100
+node bin/ludotape.mjs test examples/basic-counter.mjs examples/basic-counter.scenarios.mjs
+```
+
+Warnings from `check` describe coverage limits and still exit successfully; errors and failed scenarios exit `1`. The [cartridge authoring toolkit](cartridge-authoring-toolkit.md) explains traces, scenario declarations, report fields, limits, and how to add a scenario file for `my-counter`.
+
 ## 4. Run it headlessly
 
 Save this as `examples/run-my-counter.mjs`:

@@ -4,6 +4,9 @@ This project follows Keep a Changelog. Semantic-version stability is not promise
 
 ## [Unreleased]
 
+- Added the `ludotape/authoring` subpath with frozen action traces, exact declarative scenarios, aggregate diagnostics, and bounded twin-execution cartridge checks.
+- Added core `defineCartridge`, bounded `runActions`, verified `rewindRun`, and deterministic nonmutating `shuffle`, `die`, and `dice` RNG helpers.
+- Added CLI `check` and `test`, a Basic Counter scenario fixture, package-surface coverage, and a complete cartridge-authoring toolkit guide.
 - Added incremental replay cursors, one-time missing-projector warnings, validated solver goals, memoized SHA constants, and a reclaiming BFS queue.
 - Added draft redo/history metadata and validated draft restoration.
 - Added canonical Web Storage writes, a lazy IndexedDB repository, terminal rendering, responsive canvas redraws, and richer semantic ARIA output.

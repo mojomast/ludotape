@@ -77,6 +77,8 @@ Use `context.rng` instead of `Math.random()` in `initialState` or `transition`. 
 
 `requestAnimationFrame()` may schedule presentation, but the game advances only through explicit actions. Renderer-local animation and interpolation do not belong in authoritative state or replays.
 
+The RNG provides `next`, `int`, `pick`, nonmutating `shuffle`, `die`, and `dice`. Their consumption count is stable and documented in the [API reference](api-reference.md#rng-helpers). Treat a change from one helper sequence to another as a behavior and rules-version change, even if typical outcomes look equivalent.
+
 ## Keep projection and rendering separate
 
 `project()` returns canonical renderer-neutral data. Adapters consume frozen projection snapshots and may redraw them any number of times. They must not alter the run or dispatch actions implicitly.
@@ -96,11 +98,55 @@ Use Node's built-in `node:test` runner. At minimum, test that:
 
 [`test/onboarding.test.mjs`](../test/onboarding.test.mjs) is an executable example.
 
+## Use scenarios as executable rule examples
+
+Keep important action sequences in a neighboring `*.scenarios.mjs` module. Scenario actions are protocol data and must be exact values returned by `actions()` at that point. Reach every expected state from `initialState`; do not inject an arbitrary state, because that would bypass legality, prior RNG consumption, and replay coverage.
+
+Good scenarios:
+
+- have a descriptive name and an explicit seed when randomness matters;
+- assert initial availability so protocol changes are visible;
+- use per-step expectations around important branches and a final expectation for the outcome;
+- assert renderer-neutral `projection` for player-visible behavior, plus state only where it is a meaningful contract;
+- expect complete canonical values—scenario matching is exact, not partial;
+- remain small enough that a mismatch points to one rule;
+- accompany every fixed regression and every intentional action/projection schema change.
+
+Use `stateDigest` when storing the full state would obscure the example, but remember that a digest failure is less explanatory than a state mismatch. Avoid mechanically snapshotting every field if that would make harmless presentation changes noisy. Review scenario updates as rule changes, not as output regeneration.
+
+Run scenarios through `runScenario`/`runScenarios` or:
+
+```sh
+node bin/ludotape.mjs test examples/basic-counter.mjs examples/basic-counter.scenarios.mjs
+```
+
+Scenario failures are structured diagnostics with scenario, step, and expectation path. The CLI exits `1` if any scenario fails, making it suitable for continuous integration.
+
+## Interpret bounded cartridge checks correctly
+
+Run `checkCartridge` across representative seeds while developing, then pin practical CLI bounds in continuous integration:
+
+```sh
+node bin/ludotape.mjs check examples/basic-counter.mjs 0 2 100
+```
+
+The checker explores available actions breadth-first, twin-executes each reached path, checks projections and replay verification, and reports duplicates and coverage truncation. Follow these practices:
+
+- choose depth/path/action bounds from the game's branching factor and CI budget;
+- inspect warnings instead of treating exit `0` as exhaustive coverage;
+- require `coverage.seeds`, `paths`, and `transitions` appropriate to the intended run;
+- treat `depthLimited`, `pathLimited`, and `actionLimited` as explicit omitted behavior;
+- run multiple programmatic seeds when randomness changes legal branches (the CLI accepts one seed per invocation);
+- pair broad bounded exploration with focused exact scenarios and ordinary unit tests.
+
+Warnings do not make a check fail; error diagnostics do. A clean bounded check is evidence about only the explored paths, never a proof that a cartridge is deterministic or correct. The [cartridge authoring toolkit](cartridge-authoring-toolkit.md) documents exact declaration and report shapes.
+
 ## Platform references
 
 - [MDN: JavaScript modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
 - [Node.js: ECMAScript modules](https://nodejs.org/api/esm.html)
 - [Node.js: test runner](https://nodejs.org/api/test.html)
+- [RFC 8259: JSON](https://www.rfc-editor.org/rfc/rfc8259)
 - [MDN: requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame)
 - [MDN: canvas accessibility](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas)
 - [WCAG 2.2: keyboard accessibility](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html)
