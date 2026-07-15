@@ -31,8 +31,7 @@ export const clone=v=>JSON.parse(canonical(v));
 export function defineGame(spec){
   if(!spec||typeof spec!=='object')bad('E_GAME','game specification required');
   for(const key of ['id','version'])if(typeof spec[key]!=='string'||!spec[key])bad('E_GAME',`${key} must be a non-empty string`);
-  for(const key of ['initialState','actions'])if(typeof spec[key]!=='function')bad('E_GAME',`${key} callback required`);
-  if(spec.transition&&typeof spec.transition!=='function')bad('E_GAME','transition must be a function');
+  for(const key of ['initialState','actions','transition'])if(typeof spec[key]!=='function')bad('E_GAME',`${key} callback required`);
   return Object.freeze({...spec});
 }
 export function compileCartridge(game,document={}){
@@ -52,7 +51,7 @@ export const legalActions=availability;
 function sameAction(a,b){return canonical(a)===canonical(b)}
 export function dispatch(run,action){
   const legal=availability(run); if(!legal.some(x=>sameAction(x,action)))bad('E_ILLEGAL_ACTION','action is not currently available',{action,legal});
-  const before=digest(run.state), g=run.cartridge.game, next=g.transition?g.transition(clone(run.state),clone(action),context(run)):action.reduce(clone(run.state),context(run));
+  const before=digest(run.state), g=run.cartridge.game, next=g.transition(clone(run.state),clone(action),context(run));
   canonical(next); run.state=clone(next); const entry={index:run.journal.length,action:clone(action),before,after:digest(run.state)};run.journal.push(entry);return Object.freeze(clone(entry));
 }
 export function project(run,adapter){const view=run.cartridge.game.project?run.cartridge.game.project(clone(run.state),context(run)):clone(run.state);return adapter?adapter(view,run):view;}

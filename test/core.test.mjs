@@ -25,6 +25,7 @@ test('defineGame requires id',()=>assert.throws(()=>defineGame({version:'1',init
 test('defineGame requires version',()=>assert.throws(()=>defineGame({id:'x',initialState(){},actions(){}}),/version/));
 test('defineGame requires initialState',()=>assert.throws(()=>defineGame({id:'x',version:'1',actions(){}}),/initialState/));
 test('defineGame requires actions',()=>assert.throws(()=>defineGame({id:'x',version:'1',initialState(){}}),/actions/));
+test('defineGame requires transition',()=>assert.throws(()=>defineGame({id:'x',version:'1',initialState(){},actions(){}}),/transition/));
 test('defined game is frozen',()=>assert.ok(Object.isFrozen(counter)));
 test('cartridge has format marker',()=>assert.equal(cart.format,'ludotape/cartridge@1'));
 test('same rules and document have same identity',()=>assert.equal(cart.identity,compileCartridge(counter,{title:'x'}).identity));
@@ -51,6 +52,7 @@ test('Warehouse has renderer-neutral grid projection',()=>assert.equal(project(c
 test('Card Duel repeats from same seed',()=>assert.deepEqual(createRun(cards,{seed:99}).state,createRun(cards,{seed:99}).state));
 test('Card Duel differs across seeds',()=>assert.notDeepEqual(createRun(cards,{seed:1}).state.deck,createRun(cards,{seed:2}).state.deck));
 test('Card action is playable and journaled',()=>{const r=createRun(cards,{seed:4});dispatch(r,availability(r)[0]);assert.equal(r.state.round,1);assert.equal(r.journal.length,1)});
+test('Card Duel replay verifies after RNG transitions',()=>{const r=createRun(cards,{seed:4});dispatch(r,availability(r)[0]);dispatch(r,availability(r)[0]);assert.equal(verifyReplay(cards,createReplay(r)).ok,true)});
 test('memory repository round trip is isolated',async()=>{const r=createMemoryRepository(),v={x:1};await r.put('a',v);v.x=2;assert.deepEqual(await r.get('a'),{x:1})});
 test('memory repository sorted prefix list',async()=>{const r=createMemoryRepository();await r.put('p/b',2);await r.put('p/a',1);await r.put('q',3);assert.deepEqual(await r.list('p/'),['p/a','p/b'])});
 test('memory repository delete',async()=>{const r=createMemoryRepository();await r.put('x',1);assert.equal(await r.delete('x'),true);assert.equal(await r.get('x'),null)});
