@@ -94,7 +94,7 @@ Drafts support `replace`, `update`, `undo`, `redo`, `historyLength`, `redoLength
 ## `ludotape/authoring`
 
 - `simulateActions(cartridge, {seed = 0, actions = [], maxActions = 10000} = {})` — returns a frozen `ludotape/authoring-trace@1` containing the action script, initial and post-action `{step, state, stateDigest, availability, projection}` observations, a standard `ludotape/replay@1`, and `verified: true`. `maxActions` is `0..100000`.
-- `runScenario(cartridge, scenario, fallbackName?)` — scenario result `{ok, name, diagnostics, trace}`. Scenario fields are `name`, `seed`, exactly one of `actions`/`steps`, `initial`, `expect`, and `maxActions`. Expectations support only `state`, `stateDigest`, `availability`, and `projection`, compared by exact canonical equality.
+- `runScenario(cartridge, scenario, fallbackName?)` — scenario result `{ok, name, diagnostics, trace}`. Scenario fields are `name`, `seed`, mutually exclusive optional `actions`/`steps`, `initial`, `expect`, and `maxActions`; omitting both action forms runs an initial-state-only scenario. Expectations support only `state`, `stateDigest`, `availability`, and `projection`, compared by exact canonical equality.
 - `runScenarios(cartridge, scenarios)` — ordered aggregate `{ok, results, diagnostics}`; anonymous names are `scenario-N`.
 - `checkCartridge(cartridge, {seeds = [0], maxDepth = 2, maxPaths = 100, maxActionsPerState = 100} = {})` — twin-executes a breadth-first bounded action tree and returns `{ok, diagnostics, coverage, errors, warnings}`.
 

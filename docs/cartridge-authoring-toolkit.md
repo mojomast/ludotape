@@ -49,7 +49,7 @@ For a simpler script runner that returns the final live run without observations
 
 ## Write exact scenarios
 
-A scenario is canonical protocol data. It starts from the cartridge's real initial state and contains either an `actions` array or a `steps` array—never both. Expectations are exact canonical equality, not partial-object matching.
+A scenario is canonical protocol data. It starts from the cartridge's real initial state and may contain an `actions` array or a `steps` array—never both. Omitting both runs a zero-action scenario, which is useful for checking initial expectations. Expectations are exact canonical equality, not partial-object matching.
 
 Create `examples/my-counter.scenarios.mjs`:
 
