@@ -10,14 +10,14 @@
   <header>
     <h1>Ludotape <small>Games you can rewind</small></h1>
     <nav role="tablist" aria-label="Studio panels">
-      <button type="button" role="tab" data-tab="help">Help</button>
-      <button type="button" role="tab" data-tab="editor">Editor</button>
-      <button type="button" role="tab" data-tab="play">Play</button>
-      <button type="button" role="tab" data-tab="replay">Replay</button>
+      <button id="tab-help" type="button" role="tab" aria-controls="help" data-tab="help">Help</button>
+      <button id="tab-editor" type="button" role="tab" aria-controls="editor" data-tab="editor">Editor</button>
+      <button id="tab-play" type="button" role="tab" aria-controls="play" data-tab="play">Play</button>
+      <button id="tab-replay" type="button" role="tab" aria-controls="replay" data-tab="replay">Replay</button>
     </nav>
   </header>
   <main>
-    <section id="help" role="tabpanel">
+    <section id="help" role="tabpanel" aria-labelledby="tab-help">
       <h2>Help</h2>
       <p>Pick an example, play only legal actions, export its deterministic replay, or edit the cartridge document as JSON. Data remains local unless you export it.</p>
       <label>Game
@@ -29,7 +29,7 @@
       <label>Seed <input id="seed" type="number" value="7"></label>
       <button type="button" id="load">Load game</button>
     </section>
-    <section id="editor" role="tabpanel" hidden>
+    <section id="editor" role="tabpanel" aria-labelledby="tab-editor" hidden>
       <h2>Document editor</h2>
       <textarea id="document" spellcheck="false" aria-label="Cartridge document JSON"></textarea>
       <p>
@@ -38,11 +38,11 @@
         <span id="editor-status" role="status"></span>
       </p>
     </section>
-    <section id="play" role="tabpanel" hidden>
+    <section id="play" role="tabpanel" aria-labelledby="tab-play" hidden>
       <h2>Play</h2>
       <div class="views">
         <div><h3>Semantic</h3><div id="semantic"></div></div>
-        <div><h3>Canvas</h3><canvas id="canvas" width="440" height="300">Game view</canvas></div>
+        <div><h3>Canvas</h3><canvas id="canvas" width="440" height="300" aria-label="Game canvas view">Game view</canvas></div>
       </div>
       <div id="actions"></div>
       <p class="shortcut">Single action: <kbd>Space</kbd> / <kbd>Enter</kbd></p>
@@ -52,7 +52,7 @@
         Turn <output id="turn">0</output>
       </p>
     </section>
-    <section id="replay" role="tabpanel" hidden>
+    <section id="replay" role="tabpanel" aria-labelledby="tab-replay" hidden>
       <h2>Replay</h2>
       <textarea id="replay-text" spellcheck="false" aria-label="Replay JSON"></textarea>
       <p>

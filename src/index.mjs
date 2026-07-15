@@ -223,13 +223,15 @@ function validateReplayShape(replay, options={}) {
 export function createReplayCursor(cartridge, replay, options={}) {
   const clean=validateReplayShape(replay,options);
   if(clean.cartridge!==cartridge.identity)bad('E_IDENTITY','cartridge identity mismatch');
-  const current=createRun(cartridge,{seed:clean.seed});
+  let current=createRun(cartridge,{seed:clean.seed});
   if(current.initialDigest!==clean.initial)bad('E_INITIAL','initial state mismatch');
   let turn=0;
   function step() {
     if(turn>=clean.actions.length)bad('E_CURSOR_DONE','replay cursor is done');
-    const entry=dispatch(current,clean.actions[turn]);
+    const candidate=fork(current);
+    const entry=dispatch(candidate,clean.actions[turn]);
     if(clean.checkpoints[turn]!==entry.after)bad('E_CHECKPOINT',`checkpoint ${turn} mismatch`);
+    current=candidate;
     turn++;
     return entry;
   }

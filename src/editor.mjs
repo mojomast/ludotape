@@ -79,7 +79,10 @@ export function restoreDraft(snapshot) {
   if (!Number.isSafeInteger(clean.revision) || clean.revision < 0) {
     editorError('snapshot revision must be a non-negative safe integer');
   }
-  if (typeof clean.digest !== 'string' || clean.digest !== digest(clean.document)) {
+  let documentDigest;
+  try { documentDigest = digest(clean.document); }
+  catch (error) { editorError(`invalid draft document: ${error.message}`); }
+  if (typeof clean.digest !== 'string' || clean.digest !== documentDigest) {
     editorError('snapshot digest does not match document');
   }
   const draft = makeDraft(clean.document, clean.revision);

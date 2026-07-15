@@ -32,6 +32,16 @@ export function createStorageRepository(storage, {namespace = 'ludotape:'} = {})
   }
   validNamespace(namespace);
   const full = key => namespace + validKey(key);
+  async function listKeys(prefix = '') {
+    validKey(prefix, true);
+    const out = [];
+    for (let i = 0; i < storage.length; i++) {
+      const k = storage.key(i);
+      if (typeof k !== 'string' || !k.startsWith(namespace)) continue;
+      if (k.startsWith(namespace + prefix)) out.push(k.slice(namespace.length));
+    }
+    return out.sort();
+  }
   return {
     async put(key, value) {
       storage.setItem(full(key), canonical(value));
@@ -49,18 +59,9 @@ export function createStorageRepository(storage, {namespace = 'ludotape:'} = {})
       storage.removeItem(k);
       return existed;
     },
-    async list(prefix = '') {
-      validKey(prefix, true);
-      const out = [];
-      for (let i = 0; i < storage.length; i++) {
-        const k = storage.key(i);
-        if (typeof k !== 'string' || !k.startsWith(namespace)) continue;
-        if (k.startsWith(namespace + prefix)) out.push(k.slice(namespace.length));
-      }
-      return out.sort();
-    },
+    async list(prefix = '') { return listKeys(prefix); },
     async clear() {
-      const keys = await this.list();
+      const keys = await listKeys();
       const backup = keys.map(key => [key, storage.getItem(namespace + key)]);
       try { for (const [key] of backup) storage.removeItem(namespace + key); }
       catch (error) {
@@ -97,32 +98,46 @@ export function createIndexedDbRepository(dbName, storeName, options = {}) {
 
   function open() {
     if (databasePromise) return databasePromise;
-    databasePromise = new Promise((resolve, reject) => {
+    let opening;
+    opening = new Promise((resolve, reject) => {
       let request;
+      let settled = false;
+      const rejectOpen = error => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
       try { request = indexedDb.open(dbName, version); }
-      catch (error) { reject(idbError('failed to open database', error)); return; }
-      request.onupgradeneeded = () => {
+      catch (error) { rejectOpen(idbError('failed to open database', error)); return; }
+      request.onupgradeneeded = event => {
         try {
           if (!request.result.objectStoreNames.contains(storeName)) request.result.createObjectStore(storeName);
         } catch (error) {
-          reject(idbError('failed to create object store', error));
+          try { event.target.transaction?.abort(); } catch {}
+          rejectOpen(idbError('failed to create object store', error));
         }
       };
-      request.onerror = () => reject(idbError('failed to open database', request.error));
-      request.onblocked = () => reject(idbError('database open was blocked', request.error));
+      request.onerror = () => rejectOpen(idbError('failed to open database', request.error));
+      request.onblocked = () => rejectOpen(idbError('database open was blocked'));
       request.onsuccess = () => {
         const database = request.result;
+        if (settled) { database.close(); return; }
         if (!database.objectStoreNames.contains(storeName)) {
           database.close();
-          reject(idbError(`object store ${storeName} does not exist`));
+          rejectOpen(idbError(`object store ${storeName} does not exist`));
           return;
         }
-        database.onversionchange = () => database.close();
+        settled = true;
+        database.onversionchange = () => {
+          database.close();
+          if (databasePromise === opening) databasePromise = undefined;
+        };
         resolve(database);
       };
     });
-    databasePromise.catch(() => { databasePromise = undefined; });
-    return databasePromise;
+    databasePromise = opening;
+    opening.catch(() => { if (databasePromise === opening) databasePromise = undefined; });
+    return opening;
   }
 
   async function transact(mode, start, message) {

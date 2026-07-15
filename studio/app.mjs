@@ -46,7 +46,9 @@ function selectTab(tab) {
   activeTab = tab;
   for (const section of document.querySelectorAll('main section')) section.hidden = section.id !== activeTab;
   for (const button of document.querySelectorAll('[data-tab]')) {
-    button.setAttribute('aria-selected', String(button.dataset.tab === activeTab));
+    const selected = button.dataset.tab === activeTab;
+    button.setAttribute('aria-selected', String(selected));
+    button.tabIndex = selected ? 0 : -1;
   }
 }
 
@@ -135,6 +137,19 @@ function rewind() {
 
 for (const button of document.querySelectorAll('[data-tab]')) {
   button.onclick = () => selectTab(button.dataset.tab);
+  button.onkeydown = event => {
+    const tabs = [...document.querySelectorAll('[data-tab]')];
+    const index = tabs.indexOf(button);
+    let target;
+    if (event.key === 'ArrowRight') target = tabs[(index + 1) % tabs.length];
+    else if (event.key === 'ArrowLeft') target = tabs[(index - 1 + tabs.length) % tabs.length];
+    else if (event.key === 'Home') target = tabs[0];
+    else if (event.key === 'End') target = tabs.at(-1);
+    if (!target) return;
+    event.preventDefault();
+    selectTab(target.dataset.tab);
+    target.focus();
+  };
 }
 
 $('#load').onclick = () => { choose(); };
@@ -167,7 +182,8 @@ $('#rewind').onclick = () => {
 document.addEventListener('keydown', event => {
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   const editable = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || event.target?.isContentEditable;
-  if (editable) return;
+  const interactive = event.target?.closest?.('button, a, [role="button"], [role="tab"]');
+  if (editable || interactive) return;
   const key = event.key;
   try {
     if ((key === ' ' || key === 'Enter') && state.run) {
@@ -183,6 +199,7 @@ document.addEventListener('keydown', event => {
       restart();
     } else if (key.toLowerCase() === 'e') {
       event.preventDefault();
+      selectTab('replay');
       $('#export').focus();
     }
   } catch (error) {
