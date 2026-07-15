@@ -133,7 +133,7 @@ export function defineGame(spec) {
   if (!spec || typeof spec !== 'object') bad('E_GAME', 'game specification required');
   for (const key of ['id','version']) if (typeof spec[key] !== 'string' || !spec[key]) bad('E_GAME', `${key} must be a non-empty string`);
   for (const key of ['initialState','actions','transition']) if (typeof spec[key] !== 'function') bad('E_GAME', `${key} callback required`);
-  if (spec.isGoal !== undefined && typeof spec.isGoal !== 'function') bad('E_GAME', 'isGoal must be a function if provided');
+  for (const key of ['isGoal','project']) if (spec[key] !== undefined && typeof spec[key] !== 'function') bad('E_GAME', `${key} must be a function if provided`);
   const metadata = clone(spec.metadata ?? {}); deepFreeze(metadata);
   return Object.freeze({...spec, metadata});
 }
